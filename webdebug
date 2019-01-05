@@ -1,0 +1,6 @@
+#!/usr/bin/env python3.7
+
+from restapi import create_app
+
+app = create_app('config.DevelopmentConfig')
+app.run(host='172.25.1.234', port=51501)
