@@ -11,6 +11,9 @@ flask = "*"
 flask-restplus = "*"
 python-wifi = "*"
 gitpython = "*"
+pytz = "*"
+astral = "*"
+netifaces = "*"
 
 [requires]
 python_version = "3.7"

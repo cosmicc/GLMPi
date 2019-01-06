@@ -1,0 +1,113 @@
+#!/usr/local/bin/python3.7m
+
+import threading
+import argparse
+import logging
+import socket
+import subprocess
+import netifaces as ni
+from restapi import create_app
+from modules.processlock import plock
+from threads.threadqueues import strip_queue, status_queue
+from modules.wifitools import isup_internet
+from threads.statusled import statusled_thread, stled
+from git import Repo
+from configparser import ConfigParser
+from time import sleep
+
+__author__ = "Ian Perry"
+__copyright__ = "Copyright 2019, Galaxy Media"
+__license__ = "GPL"
+__version__ = "0.0.1"
+__maintainer__ = "Ian Perry"
+__email__ = "ianperry99@gmail.com"
+__progname__ = "glmpi"
+__description__ = "glmpi daemon service"
+__detaildesc__ = "Galaxy Lighting Module for PiZeroW"
+
+host_name = socket.gethostname()
+
+log = logging.getLogger(name=host_name)
+
+gitupdatecheck_delay = 0
+
+config = ConfigParser()
+config.read('/etc/glmpi.conf')
+
+logfile = config.get('general', 'logfile')
+webserver_port = config.get('general', 'restapi_port')
+
+parser = argparse.ArgumentParser(prog=__progname__)
+parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
+parser.add_argument('-c', '--console', action='store_true',
+                    help='supress logging output to console. default: error logging')
+parser.add_argument('-d', '--debug', action='store_true', help='verbose output (debug)')
+args = parser.parse_args()
+
+if args.debug:
+    log.setLevel(logging.DEBUG)
+else:
+    log.setLevel(logging.INFO)
+
+console_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
+log_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
+
+if args.consoles:
+    log_console = logging.StreamHandler()
+    log_console.setLevel(logging.DEBUG)
+    log.addHandler(log_console)
+    log_console.setFormatter(console_format)
+
+log_fileh = logging.FileHandler(logfile)
+log_fileh.setLevel(logging.INFO)
+log_fileh.setFormatter(log_format)
+log.addHandler(log_fileh)
+
+plock()
+
+log.info(f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name}')
+
+status_thread = threading.Thread(name='status_thread', target=StatusLed, daemon = True)
+status_thread.start()
+
+if isup_internet():
+    status_led.put({'color': 'green', 'flash': 1})
+else:
+    status_led.put({'color': 'red', 'flash': 10})
+
+
+def get_ip_address():
+    return ni.ifaddresses('wlan0')[ni.AF_INET][0]['addr']
+
+
+def gitupdatecheck():
+    repo = Repo('/opt/GLMPi')
+    origin = repo.remotes.origin
+    origin.fetch()
+    if repo.head.commit != origin.refs[0].commit:
+        status_led.put({'color': 'magenta', 'flash': 0})
+        log.warning(f'New GLMPi version found on repo. updating and restarting...')
+        origin.pull()
+        subprocess.run('systemctl restart glmpi', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+
+
+host_ip = get_ip_address()
+log.debug(f'Starting RestAPI Server on IP: {host_ip} PORT: {webserver_port}')
+try:
+    app = create_app('config.BaseConfig')
+    webserver = threading.Thread(name='webserver', target=app.run, kwargs={'host': host_ip, 'port': webserver_port}, daemon = True)
+    webserver.start()
+except:
+    log.critical(f'RestAPI Server failed to start with IP:{host_ip} PORT:{webserver_port}', exc_info=True)
+    status_led.put({'color': 'red', 'flash': 10})
+
+
+while True:
+    if gitupdatecheck_delay = 500:
+        gitupdatecheck_delay = 0
+        gitupdatecheck()
+    else:
+        gitupdatecheck_delay += 1
+    while not status_queue.empty():
+        log.warning(status_queue.get())
+    sleep(1)

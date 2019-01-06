@@ -1,24 +1,37 @@
-#!/usr/bin/env python3
-# NeoPixel library strandtest example
-# Author: Tony DiCola (tony@tonydicola.com)
-#
-# Direct port of the Arduino NeoPixel library strandtest example.  Showcases
-# various animations on a strip of NeoPixels.
-
 import time
+import math
 from rpi_ws281x import *
 import argparse
 
-# LED strip configuration:
 LED_COUNT      = 30      # Number of LED pixels.
 LED_PIN        = 18     # GPIO pin connected to the pixels (18 uses PWM!).
 #LED_PIN        = 10      # GPIO pin connected to the pixels (10 uses SPI /dev/spidev0.0).
-LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
-LED_DMA        = 10      # DMA channel to use for generating signal (try 10)
+LED_FREQ_HZ    = 800100  # LED signal frequency in hertz (usually 800khz)
+LED_DMA        = 9      # DMA channel to use for generating signal (try 10)
 LED_BRIGHTNESS = 50     # Set to 0 for darkest and 255 for brightest
 LED_INVERT     = False   # True to invert the signal (when using NPN transistor level shift)
 LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
+def hsv2rgb(h, s, v):
+    h = float(h)
+    s = float(s)
+    v = float(v)
+    h60 = h / 60.0
+    h60f = math.floor(h60)
+    hi = int(h60f) % 6
+    f = h60 - h60f
+    p = v * (1 - s)
+    q = v * (1 - f * s)
+    t = v * (1 - (1 - f) * s)
+    r, g, b = 0, 0, 0
+    if hi == 0: r, g, b = v, t, p
+    elif hi == 1: r, g, b = q, v, p
+    elif hi == 2: r, g, b = p, v, t
+    elif hi == 3: r, g, b = p, q, v
+    elif hi == 4: r, g, b = t, p, v
+    elif hi == 5: r, g, b = v, p, q
+    r, g, b = int(r * 255), int(g * 255), int(b * 255)
+    return r, g, b
 
 # Define functions which animate LEDs in various ways.
 def colorWipe(strip, color, wait_ms=50):
@@ -50,15 +63,15 @@ def wheel(pos):
         pos -= 170
         return Color(0, pos * 3, 255 - pos * 3)
 
-def rainbow(strip, wait_ms=1000, iterations=1):
+def rainbow(strip, wait_ms=1000, iterations=10):
     """Draw rainbow that fades across all pixels at once."""
     for j in range(256*iterations):
         for i in range(strip.numPixels()):
-            strip.setPixelColor(i, wheel((i+j) & 255))
+            strip.setPixelColor(i, wheel((j) & 255))
         strip.show()
         time.sleep(wait_ms/1000.0)
 
-def rainbowCycle(strip, wait_ms=20, iterations=1):
+def rainbowCycle(strip, wait_ms=30, iterations=1):
     """Draw rainbow that uniformly distributes itself across all pixels."""
     for j in range(256*iterations):
         for i in range(strip.numPixels()):
@@ -95,7 +108,6 @@ if __name__ == '__main__':
 
     try:
 
-        while True:
             #print ('Color wipe animations.')
             #colorWipe(strip, Color(255, 0, 0))  # Red wipe
             #colorWipe(strip, Color(0, 255, 0))  # Blue wipe
@@ -105,8 +117,8 @@ if __name__ == '__main__':
             #theaterChase(strip, Color(127,   0,   0))  # Red theater chase
             #theaterChase(strip, Color(  0,   0, 127))  # Blue theater chase
             #print ('Rainbow animations.')
-            #rainbow(strip)
-            rainbowCycle(strip)
+            rainbow(strip)
+            #rainbowCycle(strip)
             #theaterChaseRainbow(strip)
 
     except KeyboardInterrupt:
