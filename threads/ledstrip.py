@@ -12,7 +12,7 @@ log = logging.getLogger(name=host_name)
 class ledStrip():
     black = Color(0, 0, 0)
     blue = Color(0, 0, 255)
-    nlcolor Color()
+    #nlcolor Color()
     def __init__(self):
         config = ConfigParser()
         config.read('/etc/glmpi.conf')
@@ -33,6 +33,7 @@ class ledStrip():
             self.strip.setPixelColor(led, ledStrip.black)
         self.color = Color(0, 0, 0)
         self.strip.show()
+    def startup(self):
         for led in range(int(self.ledcount/2)+1):
             self.strip.setPixelColor(int(self.ledcount/2)+led, ledStrip.blue)
             self.strip.setPixelColor(int(self.ledcount/2)+led+1, Color(0, 0, 100))
@@ -69,6 +70,7 @@ def ledstrip(*args):
 def ledstrip_thread():
     log.debug('Led strip thread is starting')
     stripled = ledStrip()
+    stripled.startup()
     while True:
         try:
             if not strip_queue.empty():

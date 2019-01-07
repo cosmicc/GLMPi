@@ -6,6 +6,7 @@ import logging
 import socket
 import subprocess
 import netifaces as ni
+from os import stat
 from restapi import create_app
 from rpi_ws281x import Color
 from modules.processlock import plock
@@ -77,6 +78,14 @@ log.info(f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name}')
 status_thread = threading.Thread(name='status_thread', target=statusled_thread, daemon = True)
 status_thread.start()
 
+def check_logsize():
+    if stat(logfile).st_size > 1000000000:
+        log.critical('GLMPi log over 1Gig. Shutting down')
+        stled('red', flash=5, flashrate='fast')
+        ledstrip(Color(0, 0, 0))
+        sleep(3)
+        exit(3)
+
 def check_cputemp():
     cputemp = cpu_temp()
     if cputemp > cputemp_warning:
@@ -124,6 +133,7 @@ def gitupdatecheck():
         subprocess.run('systemctl restart glmpi', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
 check_cputemp()
+check_logsize()
 
 if check_internet():
     gitupdatecheck()
@@ -150,6 +160,7 @@ while True:
             onemin_delay = 0
             check_cputemp()
             check_sthub(sthubip)
+            check_logsize()
         else:
             onemin_delay += 1
 
