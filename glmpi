@@ -7,10 +7,14 @@ import socket
 import subprocess
 import netifaces as ni
 from restapi import create_app
+from rpi_ws281x import Color
 from modules.processlock import plock
+from modules.rpiboard import cpu_temp
 from threads.threadqueues import strip_queue, status_queue
-from modules.wifitools import isup_internet
+from modules.wifitools import isup_internet, isup_sthub
 from threads.statusled import statusled_thread, stled
+from threads.ledstrip import ledstrip
+from threads.ledstrip import ledstrip_thread
 from git import Repo
 from configparser import ConfigParser
 from time import sleep
@@ -29,13 +33,16 @@ host_name = socket.gethostname()
 
 log = logging.getLogger(name=host_name)
 
-gitupdatecheck_delay = 0
+fivemin_delay = 0
+onemin_delay = 0
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
 
 logfile = config.get('general', 'logfile')
 webserver_port = config.get('general', 'restapi_port')
+cputemp_warning = float(config.get('general', 'cputemp_warning'))
+sthubip = config.get('general', 'smartthings_hub_ip')
 
 parser = argparse.ArgumentParser(prog=__progname__)
 parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
@@ -52,7 +59,7 @@ else:
 console_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
 log_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
 
-if args.consoles:
+if args.console:
     log_console = logging.StreamHandler()
     log_console.setLevel(logging.DEBUG)
     log.addHandler(log_console)
@@ -67,13 +74,39 @@ plock()
 
 log.info(f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name}')
 
-status_thread = threading.Thread(name='status_thread', target=StatusLed, daemon = True)
+status_thread = threading.Thread(name='status_thread', target=statusled_thread, daemon = True)
 status_thread.start()
 
-if isup_internet():
-    status_led.put({'color': 'green', 'flash': 1})
-else:
-    status_led.put({'color': 'red', 'flash': 10})
+def check_cputemp():
+    cputemp = cpu_temp()
+    if cputemp > cputemp_warning:
+        stled('red', flash=5, flashrate='fast')
+        ledstrip(Color(0, 0, 0))
+        sleep(3)
+        log.critical(f'CPU OVER TEMP: {cputemp}F > {cputemp_warning}F')
+        exit(2)
+    else:
+        log.debug(f'CPU temp: {cputemp}F, Warning at {cputemp_warning}F')
+
+def check_sthub(sthubip):
+    if isup_sthub(sthubip):
+        stled('green', flash=0, flashrate='fast')
+        log.debug('isup_sthub: smartthings hub is UP')
+        return True
+    else:
+        stled('red', flash=5)
+        log.debug('isup_sthub: smartthings hub is DOWN')
+        return False
+
+def check_internet():
+    if isup_internet():
+        stled('green', flash=0, flashrate='fast')
+        log.debug('isup_internet: internet is UP')
+        return True
+    else:
+        stled('red', flash=5)
+        log.debug('isup_internet: internet is DOWN')
+        return False
 
 
 def get_ip_address():
@@ -85,11 +118,15 @@ def gitupdatecheck():
     origin = repo.remotes.origin
     origin.fetch()
     if repo.head.commit != origin.refs[0].commit:
-        status_led.put({'color': 'magenta', 'flash': 0})
+        stled('magenta', flash=0)
         log.warning(f'New GLMPi version found on repo. updating and restarting...')
         origin.pull()
         subprocess.run('systemctl restart glmpi', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
+check_cputemp()
+
+if check_internet():
+    gitupdatecheck()
 
 host_ip = get_ip_address()
 log.debug(f'Starting RestAPI Server on IP: {host_ip} PORT: {webserver_port}')
@@ -99,15 +136,38 @@ try:
     webserver.start()
 except:
     log.critical(f'RestAPI Server failed to start with IP:{host_ip} PORT:{webserver_port}', exc_info=True)
-    status_led.put({'color': 'red', 'flash': 10})
+    stled('red', flash=10, flashrate='fast')
 
+strip_thread = threading.Thread(name='strip_thread', target=ledstrip_thread, daemon = True)
+strip_thread.start()
+
+check_sthub(sthubip)
 
 while True:
-    if gitupdatecheck_delay = 500:
-        gitupdatecheck_delay = 0
-        gitupdatecheck()
-    else:
-        gitupdatecheck_delay += 1
-    while not status_queue.empty():
-        log.warning(status_queue.get())
-    sleep(1)
+    try:
+        sleep(10)
+        if onemin_delay == 6:
+            onemin_delay = 0
+            check_cputemp()
+            check_sthub(sthubip)
+        else:
+            onemin_delay += 1
+
+        if fivemin_delay == 30: # NORMALLY 30
+            fivemin_delay = 0
+            if check_internet():
+                gitupdatecheck()
+        else:
+            fivemin_delay += 1
+
+    except KeyboardInterrupt:
+        stled('red', flash=2, flashrate='fast')
+        ledstrip(Color(0, 0, 0))
+        sleep(.75)
+        exit(0)
+    except:
+        stled('red', flash=2, flashrate='fast')
+        log.critical('Exception in main routine', exc_info=True)
+        ledstrip(Color(0, 0, 0))
+        sleep(.75)
+        exit(1)

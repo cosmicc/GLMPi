@@ -1,0 +1,12 @@
+#!/usr/local/bin/python3.7m
+
+from threads.statusled import statusLed
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('color', action='store')
+args = parser.parse_args()
+
+stled = statusLed()
+
+stled.on(args.color,0, 'fast')
