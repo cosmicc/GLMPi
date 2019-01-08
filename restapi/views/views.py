@@ -12,8 +12,18 @@ class DeviceSleep(Resource):
         stled('green', 1)
         return 'SUCCESS'
 
-@api.route('/color')
-class Color(Resource):
+@api.route('/rgbcolor')
+@api.doc(params={'red': '255', 'green': '255', 'blue': '255'})
+class RGBColor(Resource):
     def post(self):
-        ledstrip('color', 255, 0, 0)
+        ledstrip('rgbcolor', request.args.get("red"), request.args.get("green"), request.args.get("blue"))
         return 'SUCCESS'
+
+@api.route('/hsvcolor')
+@api.doc(params={'hue': '360', 'saturation': '1', 'lightness': '100'})
+class HSVColor(Resource):
+    def post(self):
+        ledstrip('hsvcolor', request.args.get("hue"), request.args.get("saturation"), request.args.get("lightness"))
+        return 'SUCCESS'
+
+

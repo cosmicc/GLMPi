@@ -8,7 +8,7 @@ import socket
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
-loopdelay = float(config.get('status_led', 'loopdelay'))
+loopdelay = float(config.get('status_led', 'cmddelay'))
 
 host_name = socket.gethostname()
 log = logging.getLogger(name=host_name)
