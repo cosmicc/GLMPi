@@ -2,28 +2,126 @@ from flask import request, Blueprint
 from flask_restplus import Api, Resource, fields
 from threads.statusled import stled
 from threads.ledstrip import ledstrip
+from threads.threadqueues import restapi_queue
+from modules.timehelper import calcbright
+from configparser import ConfigParser
 
 webapi = Blueprint('api', __name__)
 api = Api(webapi, title='Galaxy Lighting Module RestAPI', version='1.0', doc='/')  # doc=False
 
-@api.route('/sleep')
-class DeviceSleep(Resource):
+config = ConfigParser()
+config.read('/etc/glmpi.conf')
+
+def getconfig():
+    printconfig = {}
+    for section in config.sections():
+        a = dict(config[section])
+        b = {f'{section}': a}
+        printconfig.update(b)
+    return printconfig
+
+@api.route('/night')
+@api.doc(params={'night': 'on/off'})
+class DeviceNight(Resource):
     def post(self):
-        stled('green', 1)
-        return 'SUCCESS'
+        if request.args.get("night") == 'on' or request.args.get("night") == '1' or request.args.get("night") == 'true':
+            ledstrip('nighton')
+            return 'SUCCESS'
+        elif request.args.get("night") == 'off' or request.args.get("night") == '0' or request.args.get("night") == 'false':
+            ledstrip('nightoff')
+            return 'SUCCESS'
+        else:
+            return 'ERROR'
+    def get(self):
+        ledstrip('getnight')
+        return restapi_queue.get()
+
+@api.route('/away')
+@api.doc(params={'away': 'on/off'})
+class DeviceAway(Resource):
+    def post(self):
+        if request.args.get("away") == 'on' or request.args.get("away") == '1' or request.args.get("away") == 'true':
+            ledstrip('awayon')
+            return 'SUCCESS'
+        elif request.args.get("away") == 'off' or request.args.get("away") == '0' or request.args.get("away") == 'false':
+            ledstrip('awayoff')
+            return 'SUCCESS'
+        else:
+            return 'INVALID REQUEST'
+    def get(self):
+        ledstrip('getaway')
+        return restapi_queue.get()
+
+
+@api.route('/enable')
+@api.doc(params={'enable': 'on/off'})
+class DeviceEnable(Resource):
+    def post(self):
+        if request.args.get("enable") == 'on' or request.args.get("enable") == '1' or request.args.get("enable") == 'true':
+            ledstrip('enable')
+            return 'SUCCESS'
+        elif request.args.get("enable") == 'off' or request.args.get("enable") == '0' or request.args.get("enable") == 'false':
+            ledstrip('disable')
+            return 'SUCCESS'
+        else:
+            return 'ERROR'
+    def get(self):
+        ledstrip('getenable')
+        return restapi_queue.get()
+
 
 @api.route('/rgbcolor')
 @api.doc(params={'red': '255', 'green': '255', 'blue': '255'})
 class RGBColor(Resource):
     def post(self):
-        ledstrip('rgbcolor', request.args.get("red"), request.args.get("green"), request.args.get("blue"))
+        try:
+            if int(request.args.get("red")) < 0 or int(request.args.get("red")) > 255:
+                return 'INVALID RED VALUE'
+            if int(request.args.get("green")) < 0 or int(request.args.get("green")) > 255:
+                return 'INVALID GREEN VALUE'
+            if int(request.args.get("blue")) < 0 or int(request.args.get("blue")) > 255:
+                return 'INVALID BLUE VALUE'
+            ledstrip('rgbcolor', request.args.get("red"), request.args.get("green"), request.args.get("blue"))
+        except:
+            return 'ERROR'
         return 'SUCCESS'
+    def get(self):
+        ledstrip('getrgb')
+        return restapi_queue.get()
 
 @api.route('/hsvcolor')
-@api.doc(params={'hue': '360', 'saturation': '1', 'lightness': '100'})
+@api.doc(params={'hue': '359', 'saturation': '100', 'lightness': '100'})
 class HSVColor(Resource):
     def post(self):
-        ledstrip('hsvcolor', request.args.get("hue"), request.args.get("saturation"), request.args.get("lightness"))
+        try:
+            if int(request.args.get("hue")) < 0 or int(request.args.get("hue")) > 359:
+                return 'INVALID HUE VALUE'
+            if int(request.args.get("saturation")) < 0 or int(request.args.get("saturation")) > 100:
+                return 'INVALID GREEN VALUE'
+            if int(request.args.get("lightness")) < 0 or int(request.args.get("lightness")) > 100:
+                return 'INVALID LIGHTNESS VALUE'
+            ledstrip('hsvcolor', request.args.get("hue"), request.args.get("saturation"), request.args.get("lightness"))
+        except:
+            return 'ERROR'
         return 'SUCCESS'
+    def get(self):
+        ledstrip('gethsv')
+        return restapi_queue.get()
+
+@api.route('/info')
+class Info(Resource):
+    def get(self):
+        ledstrip('getinfo')
+        return restapi_queue.get()
+
+@api.route('/config')
+class Config(Resource):
+    def get(self):
+        return getconfig()
+
+@api.route('/time')
+class Time(Resource):
+    def get(self):
+        return calcbright(data=True)
 
 
