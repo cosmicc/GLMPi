@@ -1,8 +1,7 @@
 from flask import request, Blueprint
 from flask_restplus import Api, Resource, fields
 from threads.statusled import stled
-from threads.ledstrip import ledstrip
-from threads.threadqueues import restapi_queue
+from threads.threadqueues import restapi_queue, strip_queue
 from modules.timehelper import calcbright
 from configparser import ConfigParser
 
@@ -25,15 +24,15 @@ def getconfig():
 class DeviceNight(Resource):
     def post(self):
         if request.args.get("night") == 'on' or request.args.get("night") == '1' or request.args.get("night") == 'true':
-            ledstrip('nighton')
+            strip_queue.put((5, 'nighton'),)
             return 'SUCCESS'
         elif request.args.get("night") == 'off' or request.args.get("night") == '0' or request.args.get("night") == 'false':
-            ledstrip('nightoff')
+            strip_queue.put((5, 'nightoff'),)
             return 'SUCCESS'
         else:
             return 'ERROR'
     def get(self):
-        ledstrip('getnight')
+        strip_queue.put((20, 'getnight'),)
         return restapi_queue.get()
 
 @api.route('/away')
@@ -41,15 +40,15 @@ class DeviceNight(Resource):
 class DeviceAway(Resource):
     def post(self):
         if request.args.get("away") == 'on' or request.args.get("away") == '1' or request.args.get("away") == 'true':
-            ledstrip('awayon')
+            strip_queue.put((5, 'awayon'),)
             return 'SUCCESS'
         elif request.args.get("away") == 'off' or request.args.get("away") == '0' or request.args.get("away") == 'false':
-            ledstrip('awayoff')
+            strip_queue.put((5, 'awayoff'),)
             return 'SUCCESS'
         else:
             return 'INVALID REQUEST'
     def get(self):
-        ledstrip('getaway')
+        strip_queue.put((20, 'getaway'),)
         return restapi_queue.get()
 
 
@@ -58,15 +57,15 @@ class DeviceAway(Resource):
 class DeviceEnable(Resource):
     def post(self):
         if request.args.get("enable") == 'on' or request.args.get("enable") == '1' or request.args.get("enable") == 'true':
-            ledstrip('enable')
+            strip_queue.put((5, 'enable'),)
             return 'SUCCESS'
         elif request.args.get("enable") == 'off' or request.args.get("enable") == '0' or request.args.get("enable") == 'false':
-            ledstrip('disable')
+            strip_queue.put((5, 'disable'),)
             return 'SUCCESS'
         else:
             return 'ERROR'
     def get(self):
-        ledstrip('getenable')
+        strip_queue.put((20, 'getenable'),)
         return restapi_queue.get()
 
 
@@ -81,12 +80,12 @@ class RGBColor(Resource):
                 return 'INVALID GREEN VALUE'
             if int(request.args.get("blue")) < 0 or int(request.args.get("blue")) > 255:
                 return 'INVALID BLUE VALUE'
-            ledstrip('rgbcolor', request.args.get("red"), request.args.get("green"), request.args.get("blue"))
+            strip_queue.put((15, 'rgbcolor', request.args.get("red"), request.args.get("green"), request.args.get("blue")),)
         except:
             return 'ERROR'
         return 'SUCCESS'
     def get(self):
-        ledstrip('getrgb')
+        strip_queue.put((20, 'getrgb'),)
         return restapi_queue.get()
 
 @api.route('/hsvcolor')
@@ -100,28 +99,28 @@ class HSVColor(Resource):
                 return 'INVALID GREEN VALUE'
             if int(request.args.get("lightness")) < 0 or int(request.args.get("lightness")) > 100:
                 return 'INVALID LIGHTNESS VALUE'
-            ledstrip('hsvcolor', request.args.get("hue"), request.args.get("saturation"), request.args.get("lightness"))
+            strip_queue.put((15, 'hsvcolor', request.args.get("hue"), request.args.get("saturation"), request.args.get("lightness")),)
         except:
             return 'ERROR'
         return 'SUCCESS'
     def get(self):
-        ledstrip('gethsv')
+        strip_queue.put((20, 'gethsv'),)
         return restapi_queue.get()
 
 @api.route('/whitetemp')
 @api.doc(params={'kelvin': '6500'})
 class Whitetemp(Resource):
     def post(self):
-        ledstrip('whitetemp', request.args.get("kelvin"))
+        strip_queue.put((15, 'whitetemp', request.args.get("kelvin")),)
         return 'SUCCESS'
     def get(self):
-        ledstrip('getwhitetemp')
+        strip_queue.put((20, 'getwhitetemp'),)
         return restapi_queue.get()
 
 @api.route('/info')
 class Info(Resource):
     def get(self):
-        ledstrip('getinfo')
+        strip_queue.put((20, 'getinfo'),)
         return restapi_queue.get()
 
 @api.route('/config')
@@ -133,5 +132,3 @@ class Config(Resource):
 class Time(Resource):
     def get(self):
         return calcbright(data=True)
-
-

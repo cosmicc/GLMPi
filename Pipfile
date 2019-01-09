@@ -15,6 +15,7 @@ pytz = "*"
 astral = "*"
 netifaces = "*"
 dill = "*"
+rpi-gpio = "*"
 
 [requires]
 python_version = "3.7"

@@ -1,5 +1,5 @@
-from queue import Queue
+from queue import SimpleQueue, PriorityQueue
 
-status_queue = Queue(maxsize=0)
-strip_queue = Queue(maxsize=0)
-restapi_queue = Queue(maxsize=1)
+status_queue = SimpleQueue()
+strip_queue = PriorityQueue(maxsize=50)
+restapi_queue = SimpleQueue()

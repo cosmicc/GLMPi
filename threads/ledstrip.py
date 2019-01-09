@@ -6,6 +6,7 @@ from configparser import ConfigParser
 from pathlib import Path
 from pickle import dump as pdump, load as pload
 from modules.timehelper import calcbright
+from modules.extras import str2bool
 import threading
 import logging
 import socket
@@ -15,7 +16,7 @@ log = logging.getLogger(name=host_name)
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
-loopdelay = float(config.get('led_strip', 'cmddelay'))
+loopdelay = float(config.get('led_strip', 'loopdelay'))
 
 def i2rgb(RGBint, string=True):
     blue =  RGBint & 255
@@ -63,20 +64,22 @@ def rgb_to_hsv(r, g, b):
 class ledStrip():
     black = Color(0, 0, 0)
     blue = Color(0, 0, 255)
+    white = Color(255, 255, 255)
     nlcolor = Color(20, 10, 0) # Nightlight color
 
     def __init__(self):
         config = ConfigParser()
         config.read('/etc/glmpi.conf')
-        self.nightlight = bool(config.get('features', 'nightlight'))
+        self.nightlight = str2bool(config.get('features', 'nightlight'))
         self.ledcount = int(config.get('led_strip', 'ledcount'))
-        self.invert = bool(config.get('led_strip', 'invert'))
+        self.invert = str2bool(config.get('led_strip', 'invert'))
         self.channel = int(config.get('led_strip', 'channel'))
         self.frequency = int(config.get('led_strip', 'frequency'))
         self.dma = int(config.get('led_strip', 'dma'))
         self.pin = int(config.get('led_strip', 'pin'))
         self.cyclecolor = Color(0, 0, 0)
         self.statefile = config.get('general', 'savestate')
+        self.motion = False
         if Path(self.statefile).is_file():
             infile = open(self.statefile,'rb')
             state_dict = pload(infile)
@@ -117,18 +120,19 @@ class ledStrip():
         return f'<ledStrip object on pin:{self.pin} dma:{self.dma} channel:{self.channel}>'
 
     def __str__(self):
-        return f'{self.ledcount} leds, ON:{self.on}, Mode:{self.mode}, Night:{self.night}, Away:{self.away}, Color:{i2rgb(self.color)}, Lastcolor:{self.lastcolor}, Pricolor:{self.pricolor}, is_nightlight:{self.nightlight}, is_illuminated:{self.illuminated}'
+        return f'{self.ledcount} leds, ON:{self.on}, Mode:{self.mode}, Night:{self.night}, Away:{self.away}, Color:{i2rgb(self.color)}, Lastcolor:{self.lastcolor}, Pricolor:{self.pricolor}, is_nightlight:{self.nightlight}, is_illuminated:{self.illuminated}, motion:{self.motion}'
 
     def info(self):
-        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'invert': self.invert, 'channel': self.channel, 'frequency': self.frequency, 'dma': self.dma, 'pin': self.pin, 'cyclecolor': i2rgb(self.cyclecolor), 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'whitetemp': self.whitetemp, 'illuminated': self.illuminated}
+        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'invert': self.invert, 'channel': self.channel, 'frequency': self.frequency, 'dma': self.dma, 'pin': self.pin, 'cyclecolor': i2rgb(self.cyclecolor), 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'whitetemp': self.whitetemp, 'illuminated': self.illuminated, 'motion': self.motion}
 
     def updatebrightness(self):
         newbright = calcbright()
         if self.brightness != newbright and newbright != 0:
             log.info(f'Auto-brightness level change from {self.brightness} to {newbright}')
             self.brightness = newbright
-            self.strip.setBrightness(self.brightness)
-            self.strip.show()
+            if not self.night or not self.motion or not self.away or not self.on:
+                self.strip.setBrightness(self.brightness)
+                self.strip.show()
 
     def startup(self):
         self.illuminated = True
@@ -186,6 +190,8 @@ class ledStrip():
             log.warning(f'Invalid mode received: {mode}')
 
     def colorchange(self, color, sticky=True, savestate=True):
+        ledStrip.updatebrightness(self)
+        self.strip.setBrightness(self.brightness)
         for led in range(self.ledcount):
             self.strip.setPixelColor(led, color)
         self.strip.show()
@@ -227,6 +233,24 @@ class ledStrip():
             return False
         else:
             return True
+
+    def processmotion(self, cmotion):
+        if cmotion == 'on':
+            self.motion = True
+        elif cmotion == 'off':
+            self.motion = False
+        else:
+            log.error('Error in ledstrip processmotion')
+        log.warning(self.motion)
+        if self.motion:
+            self.strip.setBrightness(255)
+            for led in range(self.ledcount):
+                self.strip.setPixelColor(led, ledStrip.white)
+            self.strip.show()
+        else:
+            log.warning('yo momma')
+            if ledStrip.preprocess(self, force=True):
+                ledStrip.modeset(self, self.mode, savestate=False)
 
     def rgbcolor(self, r, g, b):
         newcolor = Color(int(r), int(g), int(b))
@@ -296,13 +320,6 @@ class ledStrip():
                 ledStrip.modeset(self, self.mode, savestate=False)
             ledStrip.savestate(self)
 
-
-def ledstrip(*args):
-    a = ()
-    for each in args:
-        a = a + ((each),)
-    strip_queue.put(a)
-
 def ledstrip_thread():
     log.debug('Led strip thread is starting')
     stripled = ledStrip()
@@ -313,44 +330,46 @@ def ledstrip_thread():
             if not strip_queue.empty():
                 ststatus = strip_queue.get()
                 log.debug(f'Led strip queue received: {ststatus}')
-                if ststatus[0] == 'rgbcolor':
-                    stripled.rgbcolor(ststatus[1], ststatus[2], ststatus[3])
-                elif ststatus[0] == 'hsvcolor':
-                    stripled.hsvcolor(ststatus[1], ststatus[2], ststatus[3])
-                elif ststatus[0] == 'enable':
+                if ststatus[1] == 'motion':
+                    stripled.processmotion(ststatus[2])
+                elif ststatus[1] == 'rgbcolor':
+                    stripled.rgbcolor(ststatus[2], ststatus[3], ststatus[4])
+                elif ststatus[1] == 'hsvcolor':
+                    stripled.hsvcolor(ststatus[2], ststatus[3], ststatus[4])
+                elif ststatus[1] == 'enable':
                     stripled.device_enable()
-                elif ststatus[0] == 'disable':
+                elif ststatus[1] == 'disable':
                     stripled.device_disable()
-                elif ststatus[0] == 'awayon':
+                elif ststatus[1] == 'awayon':
                     stripled.awayon()
-                elif ststatus[0] == 'awayoff':
+                elif ststatus[1] == 'awayoff':
                     stripled.awayoff()
-                elif ststatus[0] == 'nighton':
+                elif ststatus[1] == 'nighton':
                     stripled.nighton()
-                elif ststatus[0] == 'nightoff':
+                elif ststatus[1] == 'nightoff':
                     stripled.nightoff()
-                elif ststatus[0] == 'stripoff':
+                elif ststatus[1] == 'stripoff':
                     stripled.colorchange(Color(0, 0, 0), sticky=False, savestate=False)
-                elif ststatus[0] == 'mode':
-                    stripled.modeset(int(ststatus[0]))
-                elif ststatus[0] == 'getinfo':
+                elif ststatus[1] == 'mode':
+                    stripled.modeset(int(ststatus[2]))
+                elif ststatus[1] == 'getinfo':
                     restapi_queue.put(stripled.info())
-                elif ststatus[0] == 'getnight':
+                elif ststatus[1] == 'getnight':
                     restapi_queue.put(stripled.night)
-                elif ststatus[0] == 'getaway':
+                elif ststatus[1] == 'getaway':
                     restapi_queue.put(stripled.away)
-                elif ststatus[0] == 'getenable':
+                elif ststatus[1] == 'getenable':
                     restapi_queue.put(stripled.on)
-                elif ststatus[0] == 'whitetemp':
-                    stripled.whitetempchange(int(ststatus[1]))
-                elif ststatus[0] == 'getrgb':
+                elif ststatus[1] == 'whitetemp':
+                    stripled.whitetempchange(int(ststatus[2]))
+                elif ststatus[1] == 'getrgb':
                     a = {}
                     rc = i2rgb(stripled.color, string=False)
                     a.update({'red': rc[0]})
                     a.update({'green': rc[1]})
                     a.update({'blue': rc[2]})
                     restapi_queue.put(a)
-                elif ststatus[0] == 'gethsv':
+                elif ststatus[1] == 'gethsv':
                     a = {}
                     r, g, b = i2rgb(stripled.color, string=False)
                     h, s, v = rgb_to_hsv(r, g, b)

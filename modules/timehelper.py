@@ -9,7 +9,7 @@ import logging
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
 lowbright = int(config.get('led_strip', 'lowbright'))
-medbright = int(config.get('led_strip', 'medbright'))
+midbright = int(config.get('led_strip', 'medbright'))
 highbright = int(config.get('led_strip', 'highbright'))
 fullbright = int(config.get('led_strip', 'fullbright'))
 
@@ -20,7 +20,6 @@ ast = Astral()
 ast.solar_depression = 'civil'
 city = ast['Detroit']
 timezone = pytz.timezone("America/Detroit")
-
 
 def calcbright(stdout=False, data=False):
     dtnow = datetime.now(timezone)

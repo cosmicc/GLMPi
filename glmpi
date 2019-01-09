@@ -14,8 +14,8 @@ from modules.rpiboard import cpu_temp
 from threads.threadqueues import strip_queue, status_queue
 from modules.wifitools import isup_internet, isup_sthub
 from threads.statusled import statusled_thread, stled
-from threads.ledstrip import ledstrip
 from threads.ledstrip import ledstrip_thread
+from threads.motionpir import motionpir_thread
 from git import Repo
 from configparser import ConfigParser
 from datetime import datetime
@@ -42,7 +42,7 @@ logfile = config.get('general', 'logfile')
 webserver_port = config.get('general', 'restapi_port')
 cputemp_warning = float(config.get('general', 'cputemp_warning'))
 sthubip = config.get('general', 'smartthings_hub_ip')
-mainloop = int(config.get('general', 'maindelay'))
+loopdelay = int(config.get('general', 'mainloopdelay'))
 
 parser = argparse.ArgumentParser(prog=__progname__)
 parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
@@ -74,7 +74,7 @@ def check_logsize():
     if stat(logfile).st_size > 1000000000:
         log.critical('GLMPi log over 1Gig. Shutting down')
         stled('red', flashes=5, flashrate='fast')
-        ledstrip(Color(0, 0, 0))
+        ledstrip((0, 'stripoff'),)
         sleep(3)
         exit(3)
 
@@ -82,7 +82,7 @@ def check_cputemp():
     cputemp = cpu_temp()
     if cputemp > cputemp_warning:
         stled('red', flashes=5, flashrate='fast')
-        ledstrip(Color(0, 0, 0))
+        ledstrip((0, 'stripoff'),)
         sleep(3)
         log.critical(f'CPU OVER TEMP: {cputemp}F > {cputemp_warning}F')
         exit(2)
@@ -155,6 +155,9 @@ def main():
         log.critical(f'RestAPI Server failed to start with IP:{host_ip} PORT:{webserver_port}', exc_info=True)
         stled('red', flashes=10, flashrate='fast')
 
+    motion_thread = threading.Thread(name='motion_thread', target=motionpir_thread, daemon = True)
+    motion_thread.start()
+
     fivemin_timer = int(datetime.now().timestamp())
     onemin_timer = int(datetime.now().timestamp())
 
@@ -172,17 +175,17 @@ def main():
                 if check_internet():
                     gitupdatecheck()
 
-            sleep(mainloop)
+            sleep(loopdelay)
 
         except KeyboardInterrupt:
             stled('red')
-            ledstrip('stripoff')
+            strip_queue.put((0, 'stripoff'),)
             sleep(.15)
             exit(0)
         except:
             stled('red')
             log.critical('Exception in main routine', exc_info=True)
-            ledstrip('stripoff')
+            strip_queue.put((0, 'stripoff'),)
             sleep(.15)
             exit(1)
 

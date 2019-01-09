@@ -2,13 +2,14 @@ from time import sleep
 from rpi_ws281x import *
 from threads.threadqueues import status_queue
 from configparser import ConfigParser
+from modules.extras import str2bool
 import threading
 import logging
 import socket
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
-loopdelay = float(config.get('status_led', 'cmddelay'))
+loopdelay = float(config.get('status_led', 'loopdelay'))
 
 host_name = socket.gethostname()
 log = logging.getLogger(name=host_name)
@@ -35,7 +36,7 @@ class statusLed():
         config = ConfigParser()
         config.read('/etc/glmpi.conf')
         self.brightness = int(config.get('status_led', 'brightness'))
-        self.invert = bool(config.get('status_led', 'invert'))
+        self.invert = str2bool(config.get('status_led', 'invert'))
         self.channel = int(config.get('status_led', 'channel'))
         self.frequency = int(config.get('status_led', 'frequency'))
         self.dma = int(config.get('status_led', 'dma'))
