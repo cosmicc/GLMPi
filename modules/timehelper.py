@@ -112,7 +112,7 @@ def calcbright(stdout=False, data=False):
         print(' ')
 
     if data:
-        return {'brightness': bright, 'daytime': day, 'lastpast': lastpast, 'nextpast': nextpast, 'localtime': str(nowtime), 'sunrise': str(sunrise), 'sunrise_offset': str(sunrise_offset), 'solarnoon_offset' : str(solarnoon_offset), 'solarnoon': str(solarnoon), 'sunset': str(sunset), 'solarmidnight_offset': str(solarmidnight_offset), 'solarmidnight': str(solarmidnight)}
+        return {'localdatetime': str(dtnow), 'localtime': str(nowtime), 'brightness': bright, 'daytime': day, 'lastpast': lastpast, 'nextpast': nextpast, 'sunrise': str(sunrise), 'sunrise_offset': str(sunrise_offset), 'solarnoon_offset' : str(solarnoon_offset), 'solarnoon': str(solarnoon), 'sunset': str(sunset), 'solarmidnight_offset': str(solarmidnight_offset), 'solarmidnight': str(solarmidnight)}
 
 if __name__ == '__main__':
     calcbright(stdout=True)

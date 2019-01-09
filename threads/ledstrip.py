@@ -17,7 +17,6 @@ config = ConfigParser()
 config.read('/etc/glmpi.conf')
 loopdelay = float(config.get('led_strip', 'cmddelay'))
 
-
 def i2rgb(RGBint, string=True):
     blue =  RGBint & 255
     green = (RGBint >> 8) & 255
@@ -78,7 +77,6 @@ class ledStrip():
         self.pin = int(config.get('led_strip', 'pin'))
         self.cyclecolor = Color(0, 0, 0)
         self.statefile = config.get('general', 'savestate')
-        self.brightness = 0
         if Path(self.statefile).is_file():
             infile = open(self.statefile,'rb')
             state_dict = pload(infile)
@@ -91,6 +89,8 @@ class ledStrip():
             self.color = state_dict['color']
             self.lastcolor = state_dict['lastcolor']
             self.pricolor = state_dict['pricolor']
+            self.whitetemp = state_dict['whitetemp']
+            self.brightness = state_dict['brightness']
             log.debug(f'Savestate file found with data: {state_dict}')
         else:
             self.mode = 1
@@ -101,6 +101,8 @@ class ledStrip():
             self.color = Color(0, 0, 0)
             self.lastcolor = Color(0, 0, 0)
             self.pricolor = Color(0, 0, 0)
+            self.whitetemp = 6500
+            self.brightness = 255
             log.debug('NO savestate file found, using defaults')
         strip = Adafruit_NeoPixel(self.ledcount, self.pin, self.frequency, self.dma, False, 255, self.channel)
         self.strip = strip
@@ -118,12 +120,11 @@ class ledStrip():
         return f'{self.ledcount} leds, ON:{self.on}, Mode:{self.mode}, Night:{self.night}, Away:{self.away}, Color:{i2rgb(self.color)}, Lastcolor:{self.lastcolor}, Pricolor:{self.pricolor}, is_nightlight:{self.nightlight}, is_illuminated:{self.illuminated}'
 
     def info(self):
-        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'invert': self.invert, 'channel': self.channel, 'frequency': self.frequency, 'dma': self.dma, 'pin': self.pin, 'cyclecolor': self.cyclecolor, 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': self.color, 'lastcolor': self.lastcolor, 'pricolor': self.pricolor, 'illuminated': self.illuminated, 'localtime': str(datetime.now().time())}
-
+        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'invert': self.invert, 'channel': self.channel, 'frequency': self.frequency, 'dma': self.dma, 'pin': self.pin, 'cyclecolor': i2rgb(self.cyclecolor), 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'whitetemp': self.whitetemp, 'illuminated': self.illuminated}
 
     def updatebrightness(self):
         newbright = calcbright()
-        if self.brightness != newbright:
+        if self.brightness != newbright and newbright != 0:
             log.info(f'Auto-brightness level change from {self.brightness} to {newbright}')
             self.brightness = newbright
             self.strip.setBrightness(self.brightness)
@@ -159,7 +160,7 @@ class ledStrip():
             ledStrip.modeset(self, self.mode, savestate=False)
 
     def savestate(self):
-        statedata = {'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': self.color, 'lastcolor': self.lastcolor, 'pricolor': self.pricolor}
+        statedata = {'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': self.color, 'lastcolor': self.lastcolor, 'pricolor': self.pricolor, 'whitetemp': self.whitetemp, 'brightness': self.brightness}
         outfile = open(self.statefile,'wb')
         pdump(statedata,outfile)
         outfile.close()
@@ -175,10 +176,14 @@ class ledStrip():
             log.info(f'Led strip mode {mode} started')
             self.mode = mode
             if ledStrip.preprocess(self):
+                ledStrip.whitetempchange(self.whitetemp, sticky=True, savestate=savestate)
+        elif mode == 3:
+            log.info(f'Led strip mode {mode} started')
+            self.mode = mode
+            if ledStrip.preprocess(self):
                 ledStrip.colorchange(self, self.cyclecolor, sticky=False, savestate=savestate)
         else:
             log.warning(f'Invalid mode received: {mode}')
-
 
     def colorchange(self, color, sticky=True, savestate=True):
         for led in range(self.ledcount):
@@ -195,6 +200,14 @@ class ledStrip():
         self.color = color
         if savestate:
             ledStrip.savestate(self)
+
+    def whitetempchange(self, whiteness): # 2000 - 6500 
+        bluemin = 40
+        whitemin = 2000
+        whitemax  = 6500
+        self.whitetemp = whiteness
+        newvalue = (((whiteness - whitemin) * (255 - bluemin)) / (whitemax - whitemin)) + bluemin
+        ledStrip.colorchange(self, Color(255, 255, int(newvalue)), sticky=True, savestate=True)
 
     def preprocess(self):
         log.debug(f'Led strip pre process check running')
@@ -328,6 +341,8 @@ def ledstrip_thread():
                     restapi_queue.put(stripled.away)
                 elif ststatus[0] == 'getenable':
                     restapi_queue.put(stripled.on)
+                elif ststatus[0] == 'whitetemp':
+                    stripled.whitetempchange(int(ststatus[1]))
                 elif ststatus[0] == 'getrgb':
                     a = {}
                     rc = i2rgb(stripled.color, string=False)

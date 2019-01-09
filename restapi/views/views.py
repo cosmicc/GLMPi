@@ -108,6 +108,16 @@ class HSVColor(Resource):
         ledstrip('gethsv')
         return restapi_queue.get()
 
+@api.route('/whitetemp')
+@api.doc(params={'kelvin': '6500'})
+class Whitetemp(Resource):
+    def post(self):
+        ledstrip('whitetemp', request.args.get("kelvin"))
+        return 'SUCCESS'
+    def get(self):
+        ledstrip('getwhitetemp')
+        return restapi_queue.get()
+
 @api.route('/info')
 class Info(Resource):
     def get(self):
