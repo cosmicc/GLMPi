@@ -156,7 +156,7 @@ class ledStrip():
 
         sleep(2)
 
-        if ledStrip.preprocess(self):
+        if ledStrip.preprocess(self, force=True):
             ledStrip.modeset(self, self.mode, savestate=False)
 
     def savestate(self):
@@ -209,16 +209,16 @@ class ledStrip():
         newvalue = (((whiteness - whitemin) * (255 - bluemin)) / (whitemax - whitemin)) + bluemin
         ledStrip.colorchange(self, Color(255, 255, int(newvalue)), sticky=True, savestate=True)
 
-    def preprocess(self):
+    def preprocess(self, force=False):
         log.debug(f'Led strip pre process check running')
         if not self.on or self.away or (self.night and not self.nightlight):
-            if self.color != ledStrip.black:
+            if self.color != ledStrip.black or force:
                 log.info(f'Led Strip shutting OFF')
                 ledStrip.colorchange(self, ledStrip.black, sticky=False, savestate=False)
                 return False
             return False
         elif self.night and self.nightlight:
-            if self.color != ledStrip.nlcolor:
+            if self.color != ledStrip.nlcolor or force:
                 log.info(f'Led Strip turning on nightlight')
                 ledStrip.colorchange(self, ledStrip.nlcolor, sticky=False, savestate=False)
                 self.strip.setBrightness(255)
