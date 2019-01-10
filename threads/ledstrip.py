@@ -18,6 +18,25 @@ config = ConfigParser()
 config.read('/etc/glmpi.conf')
 loopdelay = float(config.get('led_strip', 'loopdelay'))
 
+def colorDistance(currentColor, targetColor):
+    distance = [0, 0, 0]
+    for i in range(len(currentColor)):
+        distance[i] = abs(currentColor[i] - targetColor[i])
+    return distance
+
+def calculateIncrement(distance, fps, duration):
+    increment = [0, 0, 0]
+    for i in range(len(distance)):
+        inc = abs(distance[i] / fps)
+        increment[i] = inc
+    return increment
+
+
+def hexPercent(color):
+    percent = (color / float(0xFF)) * 100
+    return percent
+
+
 def i2rgb(RGBint, string=True):
     blue =  RGBint & 255
     green = (RGBint >> 8) & 255
@@ -64,7 +83,6 @@ def rgb_to_hsv(r, g, b):
 class ledStrip():
     black = Color(0, 0, 0)
     blue = Color(0, 0, 255)
-    white = Color(255, 255, 255)
     nlcolor = Color(20, 10, 0) # Nightlight color
 
     def __init__(self):
@@ -79,6 +97,7 @@ class ledStrip():
         self.pin = int(config.get('led_strip', 'pin'))
         self.cyclecolor = Color(0, 0, 0)
         self.statefile = config.get('general', 'savestate')
+        self.fadespeed = float(config.get('led_strip', 'fadespeed'))
         self.motion = False
         if Path(self.statefile).is_file():
             infile = open(self.statefile,'rb')
@@ -104,7 +123,7 @@ class ledStrip():
             self.color = Color(0, 0, 0)
             self.lastcolor = Color(0, 0, 0)
             self.pricolor = Color(0, 0, 0)
-            self.whitetemp = 6500
+            self.whitetemp = Color(255, 255, 255)
             self.brightness = 255
             log.debug('NO savestate file found, using defaults')
         strip = Adafruit_NeoPixel(self.ledcount, self.pin, self.frequency, self.dma, False, 255, self.channel)
@@ -123,7 +142,31 @@ class ledStrip():
         return f'{self.ledcount} leds, ON:{self.on}, Mode:{self.mode}, Night:{self.night}, Away:{self.away}, Color:{i2rgb(self.color)}, Lastcolor:{self.lastcolor}, Pricolor:{self.pricolor}, is_nightlight:{self.nightlight}, is_illuminated:{self.illuminated}, motion:{self.motion}'
 
     def info(self):
-        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'invert': self.invert, 'channel': self.channel, 'frequency': self.frequency, 'dma': self.dma, 'pin': self.pin, 'cyclecolor': i2rgb(self.cyclecolor), 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'whitetemp': self.whitetemp, 'illuminated': self.illuminated, 'motion': self.motion}
+        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'invert': self.invert, 'channel': self.channel, 'frequency': self.frequency, 'dma': self.dma, 'pin': self.pin, 'cyclecolor': i2rgb(self.cyclecolor), 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'motion': self.motion}
+
+    def transition(self, currentColor, targetColor, duration, fps):
+        distance = colorDistance(currentColor, targetColor)
+        increment = calculateIncrement(distance, fps, duration)
+        for i in range(0, int(fps)):
+            ledStrip.transitionStep(self, currentColor, targetColor, increment)
+            sleep(duration/fps)
+
+    def transitionStep(self, currentColor, targetColor, increment):
+        for i in range(len(currentColor)):
+            if currentColor[i] > targetColor[i]:
+                currentColor[i] -= increment[i]
+                if currentColor[i] <= targetColor[i]:
+                    increment[i] = 0
+            else:
+                currentColor[i] += increment[i]
+                if currentColor[i] >= targetColor[i]:
+                    increment[i] = 0
+
+        #print(f'r:{int(color[0])} g:{int(color[1])} b:{int(color[2])}')
+        ncolor = Color(int(currentColor[0]), int(currentColor[1]), int(currentColor[2]))
+        for led in range(self.ledcount):
+            self.strip.setPixelColor(led, ncolor)
+        self.strip.show()
 
     def updatebrightness(self):
         newbright = calcbright()
@@ -164,7 +207,7 @@ class ledStrip():
             ledStrip.modeset(self, self.mode, savestate=False)
 
     def savestate(self):
-        statedata = {'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': self.color, 'lastcolor': self.lastcolor, 'pricolor': self.pricolor, 'whitetemp': self.whitetemp, 'brightness': self.brightness}
+        statedata = {'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': self.color, 'lastcolor': self.lastcolor, 'pricolor': self.pricolor, 'white': self.white, 'brightness': self.brightness}
         outfile = open(self.statefile,'wb')
         pdump(statedata,outfile)
         outfile.close()
@@ -189,14 +232,19 @@ class ledStrip():
         else:
             log.warning(f'Invalid mode received: {mode}')
 
-    def colorchange(self, color, sticky=True, savestate=True):
-        ledStrip.updatebrightness(self)
-        self.strip.setBrightness(self.brightness)
-        for led in range(self.ledcount):
-            self.strip.setPixelColor(led, color)
-        self.strip.show()
+    def colorchange(self, color, sticky=True, blend=True, bright=self.brightness, savestate=True):
+        self.strip.setBrightness(bright)
+
+        if blend:
+            r, g, b = i2rgb(color, string=False)
+            x, y, z = i2rgb(self.color, string=False)
+            ledStrip.transition(self, [x, y, z], [r, g, b], self.fadespeed, 100)
+        else:
+            for led in range(self.ledcount):
+                self.strip.setPixelColor(led, color)
+            self.strip.show()
+
         log.debug(f'Led strip color changed to: {i2rgb(color)}')
-        ledStrip.updatebrightness(self)
         if color == ledStrip.black:
             self.illuminated = False
         else:
@@ -211,8 +259,8 @@ class ledStrip():
         bluemin = 40
         whitemin = 2000
         whitemax  = 6500
-        self.whitetemp = whiteness
         newvalue = (((whiteness - whitemin) * (255 - bluemin)) / (whitemax - whitemin)) + bluemin
+        self.white = Color(255, 255, int(newvalue))
         ledStrip.colorchange(self, Color(255, 255, int(newvalue)), sticky=True, savestate=True)
 
     def preprocess(self, force=False):
@@ -241,14 +289,9 @@ class ledStrip():
             self.motion = False
         else:
             log.error('Error in ledstrip processmotion')
-        log.warning(self.motion)
         if self.motion:
-            self.strip.setBrightness(255)
-            for led in range(self.ledcount):
-                self.strip.setPixelColor(led, ledStrip.white)
-            self.strip.show()
+            ledStrip.colorchange(self, self.whitetemp, sticky=False, blend=True, bright=255, savestate=False)
         else:
-            log.warning('yo momma')
             if ledStrip.preprocess(self, force=True):
                 ledStrip.modeset(self, self.mode, savestate=False)
 
@@ -349,7 +392,7 @@ def ledstrip_thread():
                 elif ststatus[1] == 'nightoff':
                     stripled.nightoff()
                 elif ststatus[1] == 'stripoff':
-                    stripled.colorchange(Color(0, 0, 0), sticky=False, savestate=False)
+                    stripled.colorchange(Color(0, 0, 0), sticky=False, blend=False, savestate=False)
                 elif ststatus[1] == 'mode':
                     stripled.modeset(int(ststatus[2]))
                 elif ststatus[1] == 'getinfo':
