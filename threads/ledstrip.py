@@ -111,7 +111,7 @@ class ledStrip():
             self.color = state_dict['color']
             self.lastcolor = state_dict['lastcolor']
             self.pricolor = state_dict['pricolor']
-            self.whitetemp = state_dict['whitetemp']
+            self.white = state_dict['white']
             self.brightness = state_dict['brightness']
             log.debug(f'Savestate file found with data: {state_dict}')
         else:
@@ -123,7 +123,7 @@ class ledStrip():
             self.color = Color(0, 0, 0)
             self.lastcolor = Color(0, 0, 0)
             self.pricolor = Color(0, 0, 0)
-            self.whitetemp = Color(255, 255, 255)
+            self.white = Color(255, 255, 255)
             self.brightness = 255
             log.debug('NO savestate file found, using defaults')
         strip = Adafruit_NeoPixel(self.ledcount, self.pin, self.frequency, self.dma, False, 255, self.channel)
@@ -232,7 +232,9 @@ class ledStrip():
         else:
             log.warning(f'Invalid mode received: {mode}')
 
-    def colorchange(self, color, sticky=True, blend=True, bright=self.brightness, savestate=True):
+    def colorchange(self, color, sticky=True, blend=True, bright=0, savestate=True):
+        if bright == 0:
+            bright = self.brightness
         self.strip.setBrightness(bright)
 
         if blend:
