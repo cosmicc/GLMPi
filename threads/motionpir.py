@@ -53,7 +53,7 @@ def motionpir_thread():
                 if motionlight:
                     strip_queue.put((0, 'motion', 'on'))
                 # 
-                log.info('* Motion Detected *')
+                log.debug('* Motion Detected *')
                 while motion_sensor.lastmotion_timestamp + mdelay > datetime.now().timestamp():
                     sleep(stoploopdelay)
                     motion_sensor.getmotion()
@@ -61,7 +61,7 @@ def motionpir_thread():
                 if motionlight:
                     strip_queue.put((0, 'motion', 'off'))
                 #
-                log.info('* Motion Stopped *')
+                log.debug('* Motion Stopped *')
             sleep(loopdelay)
         except:
             log.critical(f'Critical Error in Motion Detection Thread', exc_info=True)

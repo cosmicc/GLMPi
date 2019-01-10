@@ -243,6 +243,7 @@ class ledStrip():
         elif mode == 3:
             log.info(f'Led strip mode {mode} (color cycle) started')
             self.mode = mode
+            ledStrip.savestate(self)
             ledStrip.processcyclehue(self)
         elif mode == 4:
             log.info(f'Led strip mode {mode} (rainbow) started')
@@ -263,15 +264,17 @@ class ledStrip():
     def colorchange(self, color, sticky=True, blend=True, bright=0, savestate=True):
         if bright == 0:
             bright = self.brightness
-        self.strip.setBrightness(bright)
 
         if blend:
             r, g, b = i2rgb(color, string=False)
             x, y, z = i2rgb(self.color, string=False)
+            self.strip.setBrightness(bright)
+            self.strip.show()
             ledStrip.transition(self, [x, y, z], [r, g, b], self.fadespeed, 100)
         else:
             for led in range(self.ledcount):
                 self.strip.setPixelColor(led, color)
+            self.strip.setBrightness(bright)
             self.strip.show()
 
         log.debug(f'Led strip color changed to: {i2rgb(color)}')
@@ -327,7 +330,7 @@ class ledStrip():
         rwait = (((self.rainbowspeed - 100) * (100 - 1)) / (1 - 100)) + 1
         try:
             log.debug(f'Starting rainbow cycle thread with ms delay: {rwait/1000}')
-            log.warning(rwait)
+            self.strip.setBrightness(self.brightness)
             while True:
                 if self.mode != 4 or self.night or not self.on or self.away or (self.motion and self.motionlight):
                     log.debug('Rainbow cycle thread ending')
