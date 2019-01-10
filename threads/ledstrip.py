@@ -106,11 +106,11 @@ class ledStrip():
         self.frequency = int(config.get('led_strip', 'frequency'))
         self.dma = int(config.get('led_strip', 'dma'))
         self.pin = int(config.get('led_strip', 'pin'))
-        self.cyclecolor = Color(0, 0, 0)
         self.statefile = config.get('general', 'savestate')
         self.fadespeed = float(config.get('led_strip', 'fadespeed'))
         self.motionlight = str2bool(config.get('motion', 'light'))
         self.rainbowspeed = int(config.get('animations', 'rainbow_speed'))
+        self.cyclehue = 0
         self.nightlight_color = Color(int(config.get('nightlight', 'red')), int(config.get('nightlight', 'green')), int(config.get('nightlight', 'blue')))
         self.motion = False
         if Path(self.statefile).is_file():
@@ -156,7 +156,7 @@ class ledStrip():
         return f'{self.ledcount} leds, ON:{self.on}, Mode:{self.mode}, Night:{self.night}, Away:{self.away}, Color:{i2rgb(self.color)}, Lastcolor:{self.lastcolor}, Pricolor:{self.pricolor}, is_nightlight:{self.nightlight}, is_illuminated:{self.illuminated}, motion:{self.motion}'
 
     def info(self):
-        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'invert': self.invert, 'channel': self.channel, 'frequency': self.frequency, 'dma': self.dma, 'pin': self.pin, 'cyclecolor': i2rgb(self.cyclecolor), 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'motion': self.motion}
+        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'invert': self.invert, 'channel': self.channel, 'frequency': self.frequency, 'dma': self.dma, 'pin': self.pin, 'cyclehue': self.cyclehue, 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'motion': self.motion}
 
     def transition(self, currentColor, targetColor, duration, fps):
         distance = colorDistance(currentColor, targetColor)
@@ -243,8 +243,7 @@ class ledStrip():
         elif mode == 3:
             log.info(f'Led strip mode {mode} (color cycle) started')
             self.mode = mode
-            if ledStrip.preprocess(self):
-                ledStrip.colorchange(self, self.cyclecolor, sticky=False, savestate=savestate)
+            ledStrip.processcyclehue(self)
         elif mode == 4:
             log.info(f'Led strip mode {mode} (rainbow) started')
             self.mode = mode
@@ -286,13 +285,24 @@ class ledStrip():
         if savestate:
             ledStrip.savestate(self)
 
+    def processcyclehue(self, chue=999):
+        if int(chue) == 999:
+            chue = self.cyclehue
+        else:
+            log.debug(f'Updating cycle hue to: {chue}')
+            self.cyclehue = int(chue)
+        if self.mode == 3:
+            if ledStrip.preprocess(self):
+                r, g, b = hsv_to_rgb(int(chue), 100, 100)
+                ledStrip.colorchange(self, Color(int(r), int(g), int(b)), sticky=False, blend=False, savestate=False)
+
     def whitetempchange(self, kelvin):
         bluemin = 40
         kelvinmin = 2000
         kelvinmax  = 6500
         newblue = (((kelvin - kelvinmin) * (255 - bluemin)) / (kelvinmax - kelvinmin)) + bluemin
         self.white = Color(255, 255, int(newblue))
-        ledStrip.colorchange(self, self.white, sticky=False, savestate=True)
+        ledStrip.modeset(self, 2)
 
     def preprocess(self, force=False):
         log.debug(f'Led strip pre process check running')
@@ -308,13 +318,15 @@ class ledStrip():
                 ledStrip.colorchange(self, self.nightlight_color, bright=255, sticky=False, savestate=False)
                 return False
             return False
+        elif self.motion and self.motionlight:
+            return False
         else:
             return True
 
     def rainbowCycle(self):
         rwait = (((self.rainbowspeed - 100) * (100 - 1)) / (1 - 100)) + 1
         try:
-            log.debug('Starting rainbow cycle thread with ms delay: {rwait/1000}')
+            log.debug(f'Starting rainbow cycle thread with ms delay: {rwait/1000}')
             log.warning(rwait)
             while True:
                 if self.mode != 4 or self.night or not self.on or self.away or (self.motion and self.motionlight):
@@ -325,7 +337,6 @@ class ledStrip():
                         self.strip.setPixelColor(i, colorwheel((int(i * 256 / self.ledcount) + j) & 255))
                     self.strip.show()
                     if self.mode != 4 or self.night or not self.on or self.away or (self.motion and self.motionlight):
-                        log.debug('Rainbow cycle thread ending')
                         break
                     sleep(rwait/1000)
         except:
@@ -348,25 +359,14 @@ class ledStrip():
     def rgbcolor(self, r, g, b):
         newcolor = Color(int(r), int(g), int(b))
         self.pricolor = newcolor
-        if newcolor != self.color:
-            if ledStrip.preprocess(self):
-                ledStrip.colorchange(self, newcolor)
+        ledStrip.modeset(self, 1)
 
     def hsvcolor(self, h, s, v):
        r, g, b = hsv_to_rgb(float(h),float(s),float(v))
        log.warning(f'r: {r} g: {g} b: {b}')
        newcolor = Color(int(r), int(g), int(b))
        self.pricolor = newcolor
-       if newcolor != self.color:
-            if ledStrip.preprocess(self):
-                ledStrip.colorchange(self, newcolor)
-
-    def cyclecolorhue(self, hue):
-       r, g, b = hsv_to_rgb(float(hue),1.0,100.0)
-       self.cyclecolor = Color(r, g, b)
-       if self.cyclecolor != self.color and self.mode == 1:
-            if ledStrip.preprocess(self):
-                ledStrip.colorchange(self, self.cyclecolor, sticky=False, savestate=False)
+       ledStrip.modeset(self, 1)
 
     def device_enable(self):
         if not self.on:
@@ -459,16 +459,20 @@ def ledstrip_thread():
                     restapi_queue.put(stripled.white)
                 elif ststatus[1] == 'getmode':
                     restapi_queue.put(stripled.mode)
+                elif ststatus[1] == 'getcyclehue':
+                    restapi_queue.put(stripled.cyclehue)
+                elif ststatus[1] == 'cyclehue':
+                    stripled.processcyclehue(ststatus[2])
                 elif ststatus[1] == 'getrgb':
                     a = {}
-                    rc = i2rgb(stripled.color, string=False)
+                    rc = i2rgb(stripled.pricolor, string=False)
                     a.update({'red': rc[0]})
                     a.update({'green': rc[1]})
                     a.update({'blue': rc[2]})
                     restapi_queue.put(a)
                 elif ststatus[1] == 'gethsv':
                     a = {}
-                    r, g, b = i2rgb(stripled.color, string=False)
+                    r, g, b = i2rgb(stripled.pricolor, string=False)
                     h, s, v = rgb_to_hsv(r, g, b)
                     a.update({'hue': h})
                     a.update({'saturation': s})

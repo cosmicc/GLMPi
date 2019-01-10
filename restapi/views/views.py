@@ -130,6 +130,19 @@ class Mode(Resource):
         strip_queue.put((20, 'getmode'),)
         return restapi_queue.get()
 
+@api.route('/cyclehue')
+@api.doc(params={'hue': '359'})
+class Cyclecolor(Resource):
+    def post(self):
+        if int(request.args.get("hue")) >= 0 and int(request.args.get("hue")) < 360:
+            strip_queue.put((10, 'cyclehue', request.args.get("hue")),)
+            return 'SUCCESS'
+        else:
+            return 'INVALID MODE'
+    def get(self):
+        strip_queue.put((20, 'getcyclehue'),)
+        return restapi_queue.get()
+
 
 @api.route('/info')
 class Info(Resource):
