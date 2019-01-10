@@ -231,50 +231,52 @@ class ledStrip():
 
     def modeset(self, mode, savestate=True):
         if mode == 1:
-            log.info(f'Led strip mode {mode} (primary color) started')
-            self.mode = mode
+            if mode != self.mode:
+                log.info(f'Led strip mode {mode} (primary color) started')
+                self.mode = mode
             if ledStrip.preprocess(self):
-                 ledStrip.colorchange(self, self.pricolor, sticky=True, savestate=savestate)
+                ledStrip.colorchange(self, self.pricolor, sticky=True, savestate=savestate)
         elif mode == 2:
-            log.info(f'Led strip mode {mode} (white) started')
-            self.mode = mode
+            if mode != self.mode:
+                log.info(f'Led strip mode {mode} (white) started')
+                self.mode = mode
             if ledStrip.preprocess(self):
                 ledStrip.colorchange(self, self.white, sticky=True, savestate=savestate)
         elif mode == 3:
-            log.info(f'Led strip mode {mode} (color cycle) started')
-            self.mode = mode
+            if mode != self.mode:
+                log.info(f'Led strip mode {mode} (color cycle) started')
+                self.mode = mode
             ledStrip.savestate(self)
             ledStrip.processcyclehue(self)
         elif mode == 4:
-            log.info(f'Led strip mode {mode} (rainbow) started')
-            self.mode = mode
+            if mode != self.mode:
+                log.info(f'Led strip mode {mode} (rainbow) started')
+                self.mode = mode
             ledStrip.savestate(self)
             if ledStrip.preprocess(self):
                 rainbow_thread = threading.Thread(name='rainbow_thread', target=ledStrip.rainbowCycle, args=(self,), daemon = True)
                 rainbow_thread.start()
         elif mode == 5:
-            log.info(f'Led strip mode {mode} (new shit) started')
-            self.mode = mode
+            if mode != self.mode:
+                log.info(f'Led strip mode {mode} (new shit) started')
+                self.mode = mode
             if ledStrip.preprocess(self):
                 pass
                 #ledStrip.rainbowCycle(self)
         else:
             log.warning(f'Invalid mode received: {mode}')
 
-    def colorchange(self, color, sticky=True, blend=True, bright=0, savestate=True):
-        if bright == 0:
-            bright = self.brightness
-
+    def colorchange(self, color, sticky=True, blend=True, savestate=True):
         if blend:
             r, g, b = i2rgb(color, string=False)
             x, y, z = i2rgb(self.color, string=False)
-            self.strip.setBrightness(bright)
-            self.strip.show()
             ledStrip.transition(self, [x, y, z], [r, g, b], self.fadespeed, 100)
+            self..strip.setBrightness(self.brightness)
+            self.strip.show()
         else:
             for led in range(self.ledcount):
                 self.strip.setPixelColor(led, color)
-            self.strip.setBrightness(bright)
+            self.strip.setBrightness(self.brightness)
             self.strip.show()
 
         log.debug(f'Led strip color changed to: {i2rgb(color)}')
@@ -318,7 +320,9 @@ class ledStrip():
         elif self.night and self.nightlight:
             if self.color != self.nightlight_color or force:
                 log.info(f'Led Strip turning on nightlight')
-                ledStrip.colorchange(self, self.nightlight_color, bright=255, sticky=False, savestate=False)
+                ledStrip.colorchange(self, self.nightlight_color, sticky=False, savestate=False)
+                self.strip.setBrightness(255)
+                self.strip.show()
                 return False
             return False
         elif self.motion and self.motionlight:
