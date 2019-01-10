@@ -117,6 +117,20 @@ class Whitetemp(Resource):
         strip_queue.put((20, 'getwhitetemp'),)
         return restapi_queue.get()
 
+@api.route('/mode')
+@api.doc(params={'mode': '1'})
+class Mode(Resource):
+    def post(self):
+        if int(request.args.get("mode")) > 0 and int(request.args.get("mode")) < 10:
+            strip_queue.put((15, 'mode', request.args.get("mode")),)
+            return 'SUCCESS'
+        else:
+            return 'INVALID MODE'
+    def get(self):
+        strip_queue.put((20, 'getmode'),)
+        return restapi_queue.get()
+
+
 @api.route('/info')
 class Info(Resource):
     def get(self):

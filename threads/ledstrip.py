@@ -18,6 +18,17 @@ config = ConfigParser()
 config.read('/etc/glmpi.conf')
 loopdelay = float(config.get('led_strip', 'loopdelay'))
 
+def colorwheel(pos):
+    if pos < 85:
+        return Color(pos * 3, 255 - pos * 3, 0)
+    elif pos < 170:
+        pos -= 85
+        return Color(255 - pos * 3, 0, pos * 3)
+    else:
+        pos -= 170
+        return Color(0, pos * 3, 255 - pos * 3)
+
+
 def colorDistance(currentColor, targetColor):
     distance = [0, 0, 0]
     for i in range(len(currentColor)):
@@ -80,15 +91,15 @@ def rgb_to_hsv(r, g, b):
     v = mx*100
     return h, s, v
 
+
 class ledStrip():
     black = Color(0, 0, 0)
     blue = Color(0, 0, 255)
-    nlcolor = Color(20, 10, 0) # Nightlight color
 
     def __init__(self):
         config = ConfigParser()
         config.read('/etc/glmpi.conf')
-        self.nightlight = str2bool(config.get('features', 'nightlight'))
+        self.nightlight = str2bool(config.get('nightlight', 'enabled'))
         self.ledcount = int(config.get('led_strip', 'ledcount'))
         self.invert = str2bool(config.get('led_strip', 'invert'))
         self.channel = int(config.get('led_strip', 'channel'))
@@ -98,6 +109,9 @@ class ledStrip():
         self.cyclecolor = Color(0, 0, 0)
         self.statefile = config.get('general', 'savestate')
         self.fadespeed = float(config.get('led_strip', 'fadespeed'))
+        self.motionlight = str2bool(config.get('motion', 'light'))
+        self.rainbowspeed = int(config.get('animations', 'rainbow_speed'))
+        self.nightlight_color = Color(int(config.get('nightlight', 'red')), int(config.get('nightlight', 'green')), int(config.get('nightlight', 'blue')))
         self.motion = False
         if Path(self.statefile).is_file():
             infile = open(self.statefile,'rb')
@@ -168,6 +182,8 @@ class ledStrip():
             self.strip.setPixelColor(led, ncolor)
         self.strip.show()
 
+
+
     def updatebrightness(self):
         newbright = calcbright()
         if self.brightness != newbright and newbright != 0:
@@ -215,20 +231,33 @@ class ledStrip():
 
     def modeset(self, mode, savestate=True):
         if mode == 1:
-            log.info(f'Led strip mode {mode} started')
+            log.info(f'Led strip mode {mode} (primary color) started')
             self.mode = mode
             if ledStrip.preprocess(self):
                  ledStrip.colorchange(self, self.pricolor, sticky=True, savestate=savestate)
         elif mode == 2:
-            log.info(f'Led strip mode {mode} started')
+            log.info(f'Led strip mode {mode} (white) started')
             self.mode = mode
             if ledStrip.preprocess(self):
-                ledStrip.whitetempchange(self.whitetemp, sticky=True, savestate=savestate)
+                ledStrip.colorchange(self, self.white, sticky=True, savestate=savestate)
         elif mode == 3:
-            log.info(f'Led strip mode {mode} started')
+            log.info(f'Led strip mode {mode} (color cycle) started')
             self.mode = mode
             if ledStrip.preprocess(self):
                 ledStrip.colorchange(self, self.cyclecolor, sticky=False, savestate=savestate)
+        elif mode == 4:
+            log.info(f'Led strip mode {mode} (rainbow) started')
+            self.mode = mode
+            ledStrip.savestate(self)
+            if ledStrip.preprocess(self):
+                rainbow_thread = threading.Thread(name='rainbow_thread', target=ledStrip.rainbowCycle, args=(self,), daemon = True)
+                rainbow_thread.start()
+        elif mode == 5:
+            log.info(f'Led strip mode {mode} (new shit) started')
+            self.mode = mode
+            if ledStrip.preprocess(self):
+                pass
+                #ledStrip.rainbowCycle(self)
         else:
             log.warning(f'Invalid mode received: {mode}')
 
@@ -257,13 +286,13 @@ class ledStrip():
         if savestate:
             ledStrip.savestate(self)
 
-    def whitetempchange(self, whiteness): # 2000 - 6500 
+    def whitetempchange(self, kelvin):
         bluemin = 40
-        whitemin = 2000
-        whitemax  = 6500
-        newvalue = (((whiteness - whitemin) * (255 - bluemin)) / (whitemax - whitemin)) + bluemin
-        self.white = Color(255, 255, int(newvalue))
-        ledStrip.colorchange(self, Color(255, 255, int(newvalue)), sticky=True, savestate=True)
+        kelvinmin = 2000
+        kelvinmax  = 6500
+        newblue = (((kelvin - kelvinmin) * (255 - bluemin)) / (kelvinmax - kelvinmin)) + bluemin
+        self.white = Color(255, 255, int(newblue))
+        ledStrip.colorchange(self, self.white, sticky=False, savestate=True)
 
     def preprocess(self, force=False):
         log.debug(f'Led strip pre process check running')
@@ -274,15 +303,34 @@ class ledStrip():
                 return False
             return False
         elif self.night and self.nightlight:
-            if self.color != ledStrip.nlcolor or force:
+            if self.color != self.nightlight_color or force:
                 log.info(f'Led Strip turning on nightlight')
-                ledStrip.colorchange(self, ledStrip.nlcolor, sticky=False, savestate=False)
-                self.strip.setBrightness(255)
-                self.strip.show()
+                ledStrip.colorchange(self, self.nightlight_color, bright=255, sticky=False, savestate=False)
                 return False
             return False
         else:
             return True
+
+    def rainbowCycle(self):
+        rwait = (((self.rainbowspeed - 100) * (100 - 1)) / (1 - 100)) + 1
+        try:
+            log.debug('Starting rainbow cycle thread with ms delay: {rwait/1000}')
+            log.warning(rwait)
+            while True:
+                if self.mode != 4 or self.night or not self.on or self.away or (self.motion and self.motionlight):
+                    log.debug('Rainbow cycle thread ending')
+                    break
+                for j in range(256):
+                    for i in range(self.ledcount):
+                        self.strip.setPixelColor(i, colorwheel((int(i * 256 / self.ledcount) + j) & 255))
+                    self.strip.show()
+                    if self.mode != 4 or self.night or not self.on or self.away or (self.motion and self.motionlight):
+                        log.debug('Rainbow cycle thread ending')
+                        break
+                    sleep(rwait/1000)
+        except:
+            log.critical(f'Critical Error in rainbow cycle Thread', exc_info=True)
+
 
     def processmotion(self, cmotion):
         if cmotion == 'on':
@@ -292,7 +340,7 @@ class ledStrip():
         else:
             log.error('Error in ledstrip processmotion')
         if self.motion:
-            ledStrip.colorchange(self, self.whitetemp, sticky=False, blend=True, bright=255, savestate=False)
+            ledStrip.colorchange(self, self.white, sticky=False, blend=True, bright=255, savestate=False)
         else:
             if ledStrip.preprocess(self, force=True):
                 ledStrip.modeset(self, self.mode, savestate=False)
@@ -321,7 +369,7 @@ class ledStrip():
                 ledStrip.colorchange(self, self.cyclecolor, sticky=False, savestate=False)
 
     def device_enable(self):
-        if self.on == False:
+        if not self.on:
             self.on = True
             log.info('Device ON')
             if ledStrip.preprocess(self):
@@ -329,21 +377,21 @@ class ledStrip():
             ledStrip.savestate(self)
 
     def device_disable(self):
-        if self.on == True:
+        if self.on:
             self.on = False
             log.info('Device OFF')
             ledStrip.preprocess(self)
             ledStrip.savestate(self)
 
     def awayon(self):
-        if self.away == False:
+        if not self.away:
             self.away = True
             log.info('Device AWAY ON')
             ledStrip.preprocess(self)
             ledStrip.savestate(self)
 
     def awayoff(self):
-        if self.away == True:
+        if self.away:
             self.away = False
             log.info('Device AWAY OFF')
             if ledStrip.preprocess(self):
@@ -351,14 +399,14 @@ class ledStrip():
             ledStrip.savestate(self)
 
     def nighton(self):
-        if self.night == False:
+        if not self.night:
             self.night = True
             log.info('Device NIGHT ON')
             ledStrip.preprocess(self)
             ledStrip.savestate(self)
 
     def nightoff(self):
-        if self.night == True:
+        if self.night:
             self.night = False
             log.info('Device NIGHT OFF')
             if ledStrip.preprocess(self):
@@ -407,6 +455,10 @@ def ledstrip_thread():
                     restapi_queue.put(stripled.on)
                 elif ststatus[1] == 'whitetemp':
                     stripled.whitetempchange(int(ststatus[2]))
+                elif ststatus[1] == 'getwhitetemp':
+                    restapi_queue.put(stripled.white)
+                elif ststatus[1] == 'getmode':
+                    restapi_queue.put(stripled.mode)
                 elif ststatus[1] == 'getrgb':
                     a = {}
                     rc = i2rgb(stripled.color, string=False)
