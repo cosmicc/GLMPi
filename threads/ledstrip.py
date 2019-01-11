@@ -271,7 +271,7 @@ class ledStrip():
             r, g, b = i2rgb(color, string=False)
             x, y, z = i2rgb(self.color, string=False)
             ledStrip.transition(self, [x, y, z], [r, g, b], self.fadespeed, 100)
-            self..strip.setBrightness(self.brightness)
+            self.strip.setBrightness(self.brightness)
             self.strip.show()
         else:
             for led in range(self.ledcount):

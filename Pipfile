@@ -15,6 +15,8 @@ pytz = "*"
 astral = "*"
 netifaces = "*"
 rpi-gpio = "*"
+pygatt = {version = "*",extras = ["gatttool"]}
+bluepy = "*"
 
 [requires]
 python_version = "3.7"

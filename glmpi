@@ -41,6 +41,7 @@ config.read('/etc/glmpi.conf')
 logfile = config.get('general', 'logfile')
 webserver_port = config.get('general', 'restapi_port')
 cputemp_warning = float(config.get('general', 'cputemp_warning'))
+cputemp_shutdown = float(config.get('general', 'cputemp_shutdown'))
 sthubip = config.get('general', 'smartthings_hub_ip')
 loopdelay = int(config.get('general', 'mainloopdelay'))
 
@@ -74,20 +75,23 @@ def check_logsize():
     if stat(logfile).st_size > 1000000000:
         log.critical('GLMPi log over 1Gig. Shutting down')
         stled('red', flashes=5, flashrate='fast')
-        ledstrip((0, 'stripoff'),)
+        strip_queue.put((0, 'stripoff'),)
         sleep(3)
         exit(3)
 
 def check_cputemp():
     cputemp = cpu_temp()
-    if cputemp > cputemp_warning:
+    if cputemp > cputemp_shutdown:
         stled('red', flashes=5, flashrate='fast')
-        ledstrip((0, 'stripoff'),)
-        sleep(3)
-        log.critical(f'CPU OVER TEMP: {cputemp}F > {cputemp_warning}F')
+        strip_queue.put((0, 'stripoff'),)
+        log.critical(f'CPU OVER TEMP - SHUTTING DOWN: {cputemp}F > {cputemp_shutdown}F')
+        subprocess.run('shutdown now', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
         exit(2)
+    elif cputemp > cputemp_warning:
+        log.critical(f'CPU temp warning: {cputemp}F > {cputemp_warning}F')
+        stled('yellow', flashes=5, flashrate='fast')
     else:
-        log.debug(f'CPU temp: {cputemp}F, Warning at {cputemp_warning}F')
+        log.debug(f'CPU temp: {cputemp}F, Warning at {cputemp_warning}F, Shutdown at {cputemp_shutdown}F')
 
 def check_sthub(sthubip):
     if isup_sthub(sthubip):

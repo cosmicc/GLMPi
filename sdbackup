@@ -1,0 +1,109 @@
+#!/usr/local/bin/python3.7m
+
+import os
+import time
+import subprocess
+import logging
+
+log = logging.getLogger()
+
+console_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] : %(message)s', '%Y-%m-%d %H:%M:%S')
+log_console = logging.StreamHandler()
+log_console.setLevel(logging.DEBUG)
+log.addHandler(log_console)
+log_console.setFormatter(console_format)
+
+mount_path = '/mnt/storage'
+backup_path = '/root/backup'
+remote_mount = '172.25.1.20:/storage'
+
+with open('/imageversion') as f:
+    image_version = f.readline()
+image_version = int(image_version)
+newimage_version = int(image_version)+1
+
+timestr = time.strftime("%Y%m%d")
+backup_filename = f'GLMPi-SDImage-{timestr}-v{newimage_version}.gz'
+
+def execmd(cmd):
+    try:
+        child = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=False)
+        streamdata = child.communicate()[0].decode('UTF-8').strip()
+        rc = child.returncode
+        return rc, streamdata
+    except:
+        log.critical(f'Critical Error in execmd(). Exiting. Trace:', exc_info=True)
+
+def mountbackup():
+    try:
+        if os.path.ismount(mount_path):
+            log.error(f'Backup path is already mounted when trying to mount: {mount_path}')
+            exit(1)
+        else:
+            cmd = ['mount', remote_mount, mount_path]
+            rc, streamdata = execmd(cmd)
+            if rc != 0:
+                log.error(f'Error when trying to mount: {mount_path} - Code: {rc}')
+                exit(1)
+            else:
+                if not os.path.ismount(mount_path):
+                    log.error(f'Error after mount: {mount_path} still not mounted')
+                    exit(1)
+                else:
+                    return True
+    except:
+        log.critical(f'Critical Error in mountbackup(). Exiting. Trace:', exc_info=True)
+
+def unmountbackup():
+    try:
+        if os.path.ismount(mount_path):
+            os.system('sync')
+            cmd = ['umount', mount_path]
+            rc, streamdata = execmd(cmd)
+            if rc != 0:
+                log.error(f'Error when trying to unmount: {mount_path} - Code: {rc}')
+                exit(1)
+            else:
+                time.sleep(5)
+                if not os.path.ismount(mount_path):
+                    log.error(f'Error after unmount: {mount_path} still mounted')
+                    exit(1)
+                else:
+                    return True
+        else:
+            log.warning(f'Trying to unmount {mount_path} but is already unmounted')
+    except:
+        log.critical(f'Critical Error in unmountbackup(). Exiting. Trace:', exc_info=True)
+
+
+def advanceimagever():
+    try:
+        imageversion_file = open('/imageversion','w')
+        imageversion_file.write(str(newimage_version))
+        imageversion_file.close()
+        log.info(f'Updated image version from {image_version} to {newimage_version}')
+    except:
+        log.critical(f'Critical Error in advanceimagever(). Exiting. Trace:', exc_info=True)
+
+def startbackup():
+    try:
+        full_name = f'{backup_path}/{backup_filename}'
+        log.info(f'Starting image backup to: {full_name}')
+        #cmd = ['dd', 'if=/dev/mmcblk0', '|', 'pv', '-s', '4G', '|', 'gzip', '>', full_name,'bs=4096']
+        os.system(f'dd if=/dev/mmcblk0 bs=4096 | pv -s 14G | gzip > {full_name}')
+        #rc, streamdata = execmd(cmd)
+        log.info('Image backup completing')
+    except:
+        log.critical(f'Critical Error in startbackup(). Exiting. Trace:', exc_info=True)
+
+#dd if=/dev/mmcblk0 | pv -s 4.1G | gzip > /root/backup/GLPMPi-baseimage-v1.gz bs=4096
+
+try:
+    if mountbackup():
+        advanceimagever()
+        startbackup()
+        unmountbackup()
+        log.info(f'Backup Completed Successfully')
+
+except:
+    log.critical(f'Critical Error. Exiting. Trace:', exc_info=True)
