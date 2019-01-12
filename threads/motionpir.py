@@ -41,11 +41,11 @@ class motionPir():
 
 
 def motionpir_thread():
-    log.debug('Motion detection thread is starting')
+    log.info('Motion detection thread is starting')
     motion_sensor = motionPir()
-    log.debug(f'Waiting {warmupdelay} seconds for PIR warmup delay')
+    log.info(f'Waiting {warmupdelay} seconds for PIR warmup delay')
     sleep(warmupdelay)
-    log.debug('PIR warmup complete. Starting motion detection loop')
+    log.info('PIR warmup complete. Starting motion detection loop')
     while True:
         try:
             if motion_sensor.getmotion():

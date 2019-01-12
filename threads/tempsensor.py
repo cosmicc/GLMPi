@@ -5,7 +5,7 @@ import socket
 import subprocess
 import Adafruit_DHT
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
-from threads.threadqueues import restapi_queue
+from threads.threadqueues import strip_queue
 from modules.extras import str2bool, c2f, float_trunc_1dec
 
 host_name = socket.gethostname()
@@ -33,7 +33,7 @@ class tempSensor():
         else:
             log.error(f'1wire temp sensor - invalid sensor type: {self.sensor_type}')
             exit(1)
-        log.debug(f'Initialized 1wire temp sensor: {self.sensor_type} on pin: {self.pin}')
+        log.info(f'Initialized 1wire temp sensor: {self.sensor_type} on pin: {self.pin}')
     def check(self):
         try:
             hum, tmp = Adafruit_DHT.read_retry(self.sensor, self.pin)
@@ -47,13 +47,13 @@ class tempSensor():
             else:
                 log.error(f'Invalid temp units in config file {self.units}')
             self.humidity = float_trunc_1dec(hum)
-            log.debug(f'{tmp} - {hum}')
+            strip_queue.put((20, 'tempupdate', self.temp, self.humidity))
             log.debug(f'Tempurature={self.temp}*{self.units}  Humidity={self.humidity}%')
         else:
             log.warning(f'Failed getting temp/humidity sensor reading')
 
 def tempsensor_thread():
-    log.debug('Temp/Humidity thread is starting')
+    log.info('Temp/Humidity thread is starting')
     tempsensor = tempSensor()
     sleep(10)
     while True:

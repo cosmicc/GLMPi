@@ -45,10 +45,10 @@ class btListener():
         log.debug(f'Initializing bluetooth interface HCI0')
         subprocess.run(['/bin/hciconfig', 'hci0', 'up'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
         if self.beacon:
-            log.debug(f'Initializing bluetooth beacon mode')
+            log.info(f'Initializing bluetooth beacon mode')
             subprocess.run(['/bin/hciconfig', 'hci0', 'leadv', '3'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
         else:
-            log.debug(f'Initializing bluetooth non-beacon mode')
+            log.info(f'Initializing bluetooth non-beacon mode')
             subprocess.run(['/bin/hciconfig', 'hci0', 'noleadv'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
         self.scanner = Scanner().withDelegate(ScanDelegate())
     def scan(self):
@@ -76,7 +76,7 @@ class btListener():
 
 
 def btlistener_thread():
-    log.debug('Bluetooth listener thread is starting')
+    log.info('Bluetooth listener thread is starting')
     btdevice = btListener()
     while True:
         btdevice.scan()

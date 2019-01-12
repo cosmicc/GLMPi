@@ -111,6 +111,8 @@ class ledStrip():
         self.motionlight = str2bool(config.get('motion', 'light'))
         self.rainbowspeed = int(config.get('animations', 'rainbow_speed'))
         self.cyclehue = 0
+        self.temperature = 0.0
+        self.humidity = 0.0
         self.nightlight_color = Color(int(config.get('nightlight', 'red')), int(config.get('nightlight', 'green')), int(config.get('nightlight', 'blue')))
         self.motion = False
         if Path(self.statefile).is_file():
@@ -156,7 +158,7 @@ class ledStrip():
         return f'{self.ledcount} leds, ON:{self.on}, Mode:{self.mode}, Night:{self.night}, Away:{self.away}, Color:{i2rgb(self.color)}, Lastcolor:{self.lastcolor}, Pricolor:{self.pricolor}, is_nightlight:{self.nightlight}, is_illuminated:{self.illuminated}, motion:{self.motion}'
 
     def info(self):
-        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'invert': self.invert, 'channel': self.channel, 'frequency': self.frequency, 'dma': self.dma, 'pin': self.pin, 'cyclehue': self.cyclehue, 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'motion': self.motion}
+        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'invert': self.invert, 'channel': self.channel, 'frequency': self.frequency, 'dma': self.dma, 'pin': self.pin, 'cyclehue': self.cyclehue, 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'tempurature': self.tempurature, 'humidity': self.humidity, 'motion': self.motion}
 
     def transition(self, currentColor, targetColor, duration, fps):
         distance = colorDistance(currentColor, targetColor)
@@ -285,7 +287,7 @@ class ledStrip():
                 self.strip.setBrightness(bright)
             self.strip.show()
 
-        log.debug(f'Led strip color changed to: {i2rgb(color)}')
+        log.info(f'Led strip color changed to: {i2rgb(color)}')
         if color == ledStrip.black:
             self.illuminated = False
         else:
@@ -339,11 +341,11 @@ class ledStrip():
     def rainbowCycle(self):
         rwait = (((self.rainbowspeed - 100) * (100 - 1)) / (1 - 100)) + 1
         try:
-            log.debug(f'Starting rainbow cycle thread with ms delay: {rwait/1000}')
+            log.info(f'Starting rainbow cycle thread with ms delay: {rwait/1000}')
             self.strip.setBrightness(self.brightness)
             while True:
                 if self.mode != 4 or self.night or not self.on or self.away or (self.motion and self.motionlight):
-                    log.debug('Rainbow cycle thread ending')
+                    log.info('Rainbow cycle thread ending')
                     break
                 for j in range(256):
                     for i in range(self.ledcount):
@@ -427,8 +429,12 @@ class ledStrip():
                 ledStrip.modeset(self, self.mode, savestate=False)
             ledStrip.savestate(self)
 
+    def tempupdate(self, temp, humidity):
+        self.tempurature = temp
+        self.humidity = humidity
+
 def ledstrip_thread():
-    log.debug('Led strip thread is starting')
+    log.info('Led strip thread is starting')
     stripled = ledStrip()
     stripled.startup()
     stime = int(datetime.now().timestamp())
@@ -493,6 +499,8 @@ def ledstrip_thread():
                     a.update({'saturation': s})
                     a.update({'value': v})
                     restapi_queue.put(a)
+                elif ststatus[1] == 'tempupdate':
+                    stripled.tempupdate(ststatus[2],ststatus[3])
                 else:
                     log.warning(f'led strip queue message is invalid: {ststatus}')
             if stime+60 < int(datetime.now().timestamp()):

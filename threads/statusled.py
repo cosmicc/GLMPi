@@ -121,7 +121,7 @@ def stled(color, flashes=0, flashrate='fast'):
     status_queue.put({'color': color, 'flashes': flashes, 'flashrate': flashrate})
 
 def statusled_thread():
-    log.debug('Status led thread is starting')
+    log.info('Status led thread is starting')
     sled = statusLed()
     while True:
         try:
