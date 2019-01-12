@@ -16,10 +16,13 @@ from modules.wifitools import isup_internet, isup_sthub
 from threads.statusled import statusled_thread, stled
 from threads.ledstrip import ledstrip_thread
 from threads.motionpir import motionpir_thread
+from threads.btlistener import btlistener_thread
+from threads.tempsensor import tempsensor_thread
 from git import Repo
 from configparser import ConfigParser
 from datetime import datetime
 from time import sleep
+from modules.extras import str2bool
 
 __author__ = "Ian Perry"
 __copyright__ = "Copyright 2019, Galaxy Media"
@@ -44,6 +47,9 @@ cputemp_warning = float(config.get('general', 'cputemp_warning'))
 cputemp_shutdown = float(config.get('general', 'cputemp_shutdown'))
 sthubip = config.get('general', 'smartthings_hub_ip')
 loopdelay = int(config.get('general', 'mainloopdelay'))
+motion_enabled = str2bool(config.get('motion', 'enabled'))
+bluetooth_enabled = str2bool(config.get('bluetooth', 'enabled'))
+tempsensor_enabled = str2bool(config.get('temp_sensor', 'enabled'))
 
 parser = argparse.ArgumentParser(prog=__progname__)
 parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
@@ -133,7 +139,7 @@ plock()
 def main():
     log.info(f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name}')
 
-    status_thread = threading.Thread(name='status_thread', target=statusled_thread, daemon = True)
+    status_thread = threading.Thread(name='statusled_thread', target=statusled_thread, daemon = True)
     status_thread.start()
 
     check_cputemp()
@@ -142,7 +148,7 @@ def main():
     if check_internet():
         gitupdatecheck()
 
-    strip_thread = threading.Thread(name='strip_thread', target=ledstrip_thread, daemon = True)
+    strip_thread = threading.Thread(name='ledstrip_thread', target=ledstrip_thread, daemon = True)
     strip_thread.start()
 
     check_sthub(sthubip)
@@ -159,28 +165,33 @@ def main():
         log.critical(f'RestAPI Server failed to start with IP:{host_ip} PORT:{webserver_port}', exc_info=True)
         stled('red', flashes=10, flashrate='fast')
 
-    motion_thread = threading.Thread(name='motion_thread', target=motionpir_thread, daemon = True)
-    motion_thread.start()
+    if motion_enabled:
+        motion_thread = threading.Thread(name='motion_thread', target=motionpir_thread, daemon = True)
+        motion_thread.start()
+
+    if tempsensor_enabled:
+        temp_thread = threading.Thread(name='tempsensor_thread', target=tempsensor_thread, daemon = True)
+        temp_thread.start()
+
+    if bluetooth_enabled:
+        bluetooth_thread = threading.Thread(name='bluetooth_thread', target=btlistener_thread, daemon = True)
+        bluetooth_thread.start()
 
     fivemin_timer = int(datetime.now().timestamp())
     onemin_timer = int(datetime.now().timestamp())
 
     while True:
         try:
-
             if onemin_timer+60 < int(datetime.now().timestamp()):
                 onemin_timer = int(datetime.now().timestamp())
                 check_cputemp()
                 check_sthub(sthubip)
                 check_logsize()
-
             if fivemin_timer+300 < int(datetime.now().timestamp()):
                 fivemin_timer = int(datetime.now().timestamp())
                 if check_internet():
                     gitupdatecheck()
-
             sleep(loopdelay)
-
         except KeyboardInterrupt:
             stled('red')
             strip_queue.put((0, 'stripoff'),)

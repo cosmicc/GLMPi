@@ -4,9 +4,16 @@ from threads.statusled import stled
 from threads.threadqueues import restapi_queue, strip_queue
 from modules.timehelper import calcbright
 from configparser import ConfigParser
+import subprocess
+import logging
+import socket
 
 webapi = Blueprint('api', __name__)
 api = Api(webapi, title='Galaxy Lighting Module RestAPI', version='1.0', doc='/')  # doc=False
+
+
+host_name = socket.gethostname()
+log = logging.getLogger(name=host_name)
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
@@ -18,6 +25,21 @@ def getconfig():
         b = {f'{section}': a}
         printconfig.update(b)
     return printconfig
+
+@api.route('/reset')
+@api.doc(params={'type': 'soft/hard'})
+class DeviceReset(Resource):
+    def post(self):
+        if request.args.get("type") == 'soft':
+            log.warning('SOFT RESET recieved from restapi, restarting glmpi service')
+            subprocess.run(['/bin/systemctl', 'restart', 'glmpi'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
+            return 'SUCCESS'
+        elif request.args.get("type") == 'hard':
+            log.warning('HARD RESET recieved from restapi, restarting pi')
+            subprocess.run(['/sbin/reboot'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
+            return 'SUCCESS'
+        else:
+            return 'ERROR'
 
 @api.route('/night')
 @api.doc(params={'night': 'on/off'})

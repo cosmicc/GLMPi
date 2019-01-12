@@ -15,8 +15,9 @@ pytz = "*"
 astral = "*"
 netifaces = "*"
 rpi-gpio = "*"
-pygatt = {version = "*",extras = ["gatttool"]}
+pygatt = {extras = ["gatttool"],version = "*"}
 bluepy = "*"
+adafruit-dht = "*"
 
 [requires]
 python_version = "3.7"

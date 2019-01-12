@@ -266,17 +266,23 @@ class ledStrip():
         else:
             log.warning(f'Invalid mode received: {mode}')
 
-    def colorchange(self, color, sticky=True, blend=True, savestate=True):
+    def colorchange(self, color, sticky=True, blend=True, bright=0, savestate=True):
         if blend:
             r, g, b = i2rgb(color, string=False)
             x, y, z = i2rgb(self.color, string=False)
             ledStrip.transition(self, [x, y, z], [r, g, b], self.fadespeed, 100)
-            self.strip.setBrightness(self.brightness)
+            if bright == 0:
+                self.strip.setBrightness(self.brightness)
+            else:
+                self.strip.setBrightness(bright)
             self.strip.show()
         else:
             for led in range(self.ledcount):
                 self.strip.setPixelColor(led, color)
-            self.strip.setBrightness(self.brightness)
+            if bright == 0:
+                self.strip.setBrightness(self.brightness)
+            else:
+                self.strip.setBrightness(bright)
             self.strip.show()
 
         log.debug(f'Led strip color changed to: {i2rgb(color)}')
@@ -358,9 +364,10 @@ class ledStrip():
         else:
             log.error('Error in ledstrip processmotion')
         if self.motion:
-            ledStrip.colorchange(self, self.white, sticky=False, blend=True, bright=255, savestate=False)
+            if not self.away:
+                ledStrip.colorchange(self, self.white, sticky=False, blend=True, bright=255, savestate=False)
         else:
-            if ledStrip.preprocess(self, force=True):
+            if ledStrip.preprocess(self, force=False):
                 ledStrip.modeset(self, self.mode, savestate=False)
 
     def rgbcolor(self, r, g, b):
@@ -449,6 +456,7 @@ def ledstrip_thread():
                 elif ststatus[1] == 'nightoff':
                     stripled.nightoff()
                 elif ststatus[1] == 'stripoff':
+                    stripled.on = False
                     stripled.colorchange(Color(0, 0, 0), sticky=False, blend=False, savestate=False)
                 elif ststatus[1] == 'mode':
                     stripled.modeset(int(ststatus[2]))
