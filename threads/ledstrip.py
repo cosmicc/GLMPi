@@ -6,7 +6,8 @@ from configparser import ConfigParser
 from pathlib import Path
 from pickle import dump as pdump, load as pload
 from modules.timehelper import calcbright
-from modules.extras import str2bool
+from modules.extras import str2bool, c2f
+import modules.rpiboard as rpi
 import threading
 import logging
 import socket
@@ -110,8 +111,9 @@ class ledStrip():
         self.fadespeed = float(config.get('led_strip', 'fadespeed'))
         self.motionlight = str2bool(config.get('motion', 'light'))
         self.rainbowspeed = int(config.get('animations', 'rainbow_speed'))
+        self.temp_units = config.get('general', 'temp_units')
         self.cyclehue = 0
-        self.temperature = 0.0
+        self.tempurature = 0.0
         self.humidity = 0.0
         self.nightlight_color = Color(int(config.get('nightlight', 'red')), int(config.get('nightlight', 'green')), int(config.get('nightlight', 'blue')))
         self.motion = False
@@ -129,6 +131,7 @@ class ledStrip():
             self.pricolor = state_dict['pricolor']
             self.white = state_dict['white']
             self.brightness = state_dict['brightness']
+            self.lastmotion = state_dict['lastmotion']
             log.debug(f'Savestate file found with data: {state_dict}')
         else:
             self.mode = 1
@@ -141,6 +144,7 @@ class ledStrip():
             self.pricolor = Color(0, 0, 0)
             self.white = Color(255, 255, 255)
             self.brightness = 255
+            self.lastmotion = datetime.now()
             log.debug('NO savestate file found, using defaults')
         strip = Adafruit_NeoPixel(self.ledcount, self.pin, self.frequency, self.dma, False, 255, self.channel)
         self.strip = strip
@@ -158,7 +162,11 @@ class ledStrip():
         return f'{self.ledcount} leds, ON:{self.on}, Mode:{self.mode}, Night:{self.night}, Away:{self.away}, Color:{i2rgb(self.color)}, Lastcolor:{self.lastcolor}, Pricolor:{self.pricolor}, is_nightlight:{self.nightlight}, is_illuminated:{self.illuminated}, motion:{self.motion}'
 
     def info(self):
-        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'invert': self.invert, 'channel': self.channel, 'frequency': self.frequency, 'dma': self.dma, 'pin': self.pin, 'cyclehue': self.cyclehue, 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'tempurature': self.tempurature, 'humidity': self.humidity, 'motion': self.motion}
+        if self.temp_units == 'C':
+            ttemp = rpi.cpu_temp()
+        elif self.temp_units == 'F':
+            ttemp = c2f(rpi.cpu_temp())
+        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'cputemp': ttemp, 'cyclehue': self.cyclehue, 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'tempurature': self.tempurature, 'humidity': self.humidity, 'motion': self.motion, 'lastmotion': self.lastmotion.strftime("%Y-%m-%d %H:%M:%S"), 'uptime': rpi.system_uptime(), 'cpuload': rpi.get_load(), 'memory': rpi.get_freemem(), 'diskspace': rpi.get_diskspace(), 'system': rpi.rpi_info()}
 
     def transition(self, currentColor, targetColor, duration, fps):
         distance = colorDistance(currentColor, targetColor)
@@ -225,7 +233,7 @@ class ledStrip():
             ledStrip.modeset(self, self.mode, savestate=False)
 
     def savestate(self):
-        statedata = {'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': self.color, 'lastcolor': self.lastcolor, 'pricolor': self.pricolor, 'white': self.white, 'brightness': self.brightness}
+        statedata = {'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': self.color, 'lastcolor': self.lastcolor, 'pricolor': self.pricolor, 'white': self.white, 'brightness': self.brightness, 'lastmotion': self.lastmotion}
         outfile = open(self.statefile,'wb')
         pdump(statedata,outfile)
         outfile.close()
@@ -359,6 +367,7 @@ class ledStrip():
 
 
     def processmotion(self, cmotion):
+        self.lastmotion = datetime.now()
         if cmotion == 'on':
             self.motion = True
         elif cmotion == 'off':

@@ -10,7 +10,7 @@ from os import stat
 from restapi import create_app
 from rpi_ws281x import Color
 from modules.processlock import plock
-from modules.rpiboard import cpu_temp
+from modules.rpiboard import cpu_temp, Led
 from threads.threadqueues import strip_queue, status_queue
 from modules.wifitools import isup_internet, isup_sthub
 from threads.statusled import statusled_thread, stled
@@ -56,13 +56,16 @@ parser = argparse.ArgumentParser(prog=__progname__)
 parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
 parser.add_argument('-c', '--console', action='store_true',
                     help='supress logging output to console. default: error logging')
-parser.add_argument('-d', '--debug', action='store_true', help='verbose output (debug)')
+parser.add_argument('-d', '--debug', action='store_true', help='extra verbose output (debug)')
+parser.add_argument('-i', '--info', action='store_true', help='verbose output (info)')
 args = parser.parse_args()
 
 if args.debug:
     log.setLevel(logging.DEBUG)
-else:
+elif args.info:
     log.setLevel(logging.INFO)
+else:
+    log.setLevel(logging.WARNING)
 
 console_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
 log_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
@@ -98,7 +101,7 @@ def check_cputemp():
         #subprocess.run('shutdown now', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
         exit(2)
     elif cputemp > cputemp_warning:
-        log.critical(f'CPU temp warning: {cputemp}*{temp_units} > {cputemp_warning}*{temp_units}')
+        log.warning(f'CPU temp warning: {cputemp}*{temp_units} > {cputemp_warning}*{temp_units}')
         stled('yellow', flashes=5, flashrate='fast')
     else:
         log.debug(f'CPU temp: {cputemp}*{temp_units}, Warning at {cputemp_warning}*{temp_units}, Shutdown at {cputemp_shutdown}*{temp_units}')
@@ -110,7 +113,7 @@ def check_sthub(sthubip):
         return True
     else:
         stled('red', flashes=5)
-        log.debug('Smartthings Hub is DOWN')
+        log.info('Smartthings Hub is DOWN')
         return False
 
 def check_internet():
@@ -120,7 +123,7 @@ def check_internet():
         return True
     else:
         stled('red', flashes=5, flashrate='slow')
-        log.debug('Internet is DOWN')
+        log.info('Internet is DOWN')
         return False
 
 
@@ -146,6 +149,10 @@ def main():
     status_thread = threading.Thread(name='statusled_thread', target=statusled_thread, daemon = True)
     status_thread.start()
 
+    log.debug('Shutting off on board pi status led')
+    boardled = Led('status')
+    boardled.ledoff()
+
     check_cputemp()
     check_logsize()
 
@@ -160,7 +167,7 @@ def main():
     sleep(1)
 
     host_ip = get_ip_address()
-    log.debug(f'Starting RestAPI Server on IP: {host_ip} PORT: {webserver_port}')
+    log.info(f'Starting RestAPI Server on IP: {host_ip} PORT: {webserver_port}')
     try:
         app = create_app('config.BaseConfig')
         webserver = threading.Thread(name='webserver', target=app.run, kwargs={'host': host_ip, 'port': webserver_port}, daemon = True)
@@ -200,10 +207,11 @@ def main():
             stled('red')
             strip_queue.put((0, 'stripoff'),)
             sleep(.15)
+            log.critical('Exiting due to Keyboard Interrupt')
             exit(0)
         except:
             stled('red')
-            log.critical('Exception in main routine', exc_info=True)
+            log.critical('Exception in main thread', exc_info=True)
             strip_queue.put((0, 'stripoff'),)
             sleep(.15)
             exit(1)

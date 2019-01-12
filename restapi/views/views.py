@@ -54,7 +54,7 @@ class DeviceNight(Resource):
         else:
             return 'ERROR'
     def get(self):
-        strip_queue.put((20, 'getnight'),)
+        strip_queue.put((18, 'getnight'),)
         return restapi_queue.get()
 
 @api.route('/away')
@@ -70,7 +70,7 @@ class DeviceAway(Resource):
         else:
             return 'INVALID REQUEST'
     def get(self):
-        strip_queue.put((20, 'getaway'),)
+        strip_queue.put((18, 'getaway'),)
         return restapi_queue.get()
 
 
@@ -87,7 +87,7 @@ class DeviceEnable(Resource):
         else:
             return 'ERROR'
     def get(self):
-        strip_queue.put((20, 'getenable'),)
+        strip_queue.put((18, 'getenable'),)
         return restapi_queue.get()
 
 
@@ -107,7 +107,7 @@ class RGBColor(Resource):
             return 'ERROR'
         return 'SUCCESS'
     def get(self):
-        strip_queue.put((20, 'getrgb'),)
+        strip_queue.put((18, 'getrgb'),)
         return restapi_queue.get()
 
 @api.route('/hsvcolor')
@@ -126,7 +126,7 @@ class HSVColor(Resource):
             return 'ERROR'
         return 'SUCCESS'
     def get(self):
-        strip_queue.put((20, 'gethsv'),)
+        strip_queue.put((18, 'gethsv'),)
         return restapi_queue.get()
 
 @api.route('/whitetemp')
@@ -136,7 +136,7 @@ class Whitetemp(Resource):
         strip_queue.put((15, 'whitetemp', request.args.get("kelvin")),)
         return 'SUCCESS'
     def get(self):
-        strip_queue.put((20, 'getwhitetemp'),)
+        strip_queue.put((18, 'getwhitetemp'),)
         return restapi_queue.get()
 
 @api.route('/mode')
@@ -149,7 +149,7 @@ class Mode(Resource):
         else:
             return 'INVALID MODE'
     def get(self):
-        strip_queue.put((20, 'getmode'),)
+        strip_queue.put((18, 'getmode'),)
         return restapi_queue.get()
 
 @api.route('/cyclehue')
@@ -162,14 +162,14 @@ class Cyclecolor(Resource):
         else:
             return 'INVALID MODE'
     def get(self):
-        strip_queue.put((20, 'getcyclehue'),)
+        strip_queue.put((18, 'getcyclehue'),)
         return restapi_queue.get()
 
 
 @api.route('/info')
 class Info(Resource):
     def get(self):
-        strip_queue.put((20, 'getinfo'),)
+        strip_queue.put((18, 'getinfo'),)
         return restapi_queue.get()
 
 @api.route('/config')

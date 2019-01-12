@@ -1,4 +1,4 @@
-from os import uname, getenv, popen
+from os import uname, getenv, popen, getloadavg
 from socket import gethostname
 from subprocess import check_output, Popen, PIPE
 from modules.extras import float_trunc_1dec
@@ -55,6 +55,14 @@ def disable_hdmi():
     else:
         return True
 
+def get_load():
+    a = {}
+    x = getloadavg()
+    a.update({'1min': x[0]})
+    a.update({'5min': x[1]})
+    a.update({'15min': x[2]})
+    return a
+
 def get_freemem():
     fm = Popen(['/usr/bin/free', '-h'], stdout=PIPE)
     i = 0
@@ -86,7 +94,7 @@ def rpi_info():
     rpiinfo = {}
     runame = uname()
     cores = 0
-    rpiinfo.update({'hostname':gethostname(), 'system':runame[0], 'release':runame[2], 'version':runame[3], 'machine':runame[4], 'board':rpi_board()})
+    rpiinfo.update({'system':runame[0], 'release':runame[2], 'version':runame[3], 'machine':runame[4], 'board':rpi_board()})
     cpuinfofile = open('/proc/cpuinfo')
     for line in cpuinfofile:
         line = line.split(':')

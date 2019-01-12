@@ -1,0 +1,6 @@
+#!/bin/sh
+
+apt update
+apt-get -y dist-upgrade
+apt-get -y autoremove
+test -f /var/run/reboot-required && echo rebooting && sudo reboot

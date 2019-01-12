@@ -55,14 +55,14 @@ class btListener():
         try:
             devices = self.scanner.scan(self.scantime)
         except BTLEDisconnectError:
-            log.warning(f'Bluetooth device disconnected')
+            log.debug(f'Bluetooth device disconnected')
         else:
             for dev in devices:
                 if dev.connectable:
                     try:
                         ndev = Peripheral(dev)
                     except BTLEDisconnectError:
-                        log.warning(f'Cannot connect to device: {dev.addr} {dev.rssi} dB')
+                        log.debug(f'Cannot connect to device: {dev.addr} {dev.rssi} dB')
                     else:
                         device_name = ndev.getCharacteristics(uuid='00002a00-0000-1000-8000-00805f9b34fb')[0].read().decode('UTF-8')
                         device_appr = ndev.getCharacteristics(uuid='00002a01-0000-1000-8000-00805f9b34fb')[0].read().decode('UTF-8')
