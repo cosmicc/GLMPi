@@ -27,7 +27,7 @@ from modules.extras import str2bool, c2f
 __author__ = "Ian Perry"
 __copyright__ = "Copyright 2019, Galaxy Media"
 __license__ = "GPL"
-__version__ = "0.0.1"
+__version__ = "0.1.1"
 __maintainer__ = "Ian Perry"
 __email__ = "ianperry99@gmail.com"
 __progname__ = "glmpi"
@@ -98,7 +98,7 @@ def check_cputemp():
         stled('red', flashes=5, flashrate='fast')
         strip_queue.put((0, 'stripoff'),)
         log.critical(f'CPU OVER TEMP - SHUTTING DOWN: {cputemp}*{temp_units} > {cputemp_shutdown}*{temp_units}')
-        #subprocess.run('shutdown now', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.run('shutdown now', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
         exit(2)
     elif cputemp > cputemp_warning:
         log.warning(f'CPU temp warning: {cputemp}*{temp_units} > {cputemp_warning}*{temp_units}')

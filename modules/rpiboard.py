@@ -162,3 +162,24 @@ def system_uptime():
     ut = check_output(['uptime', '-p'], shell=False).decode("utf-8").strip()
     ur = ut.split('up ')
     return ur[1]
+
+def get_release():
+    y = {}
+    a = check_output(['lsb_release', '-a'])
+    a = a.split(b'\n')
+    for each in a:
+        if each != b'':
+            p = each.split(b'\t')
+            y.update({p[0][:-1].decode('UTF-8'): p[1].decode('UTF-8')})
+    return y
+
+def get_cpuspeed():
+    a = check_output(['vcgencmd', 'measure_clock', 'arm'])
+    a = a.split(b'=')
+    a = int(a[1].decode('UTF-8').strip())/1000000
+    return f'{int(a)}Mhz'
+
+def get_throttled():
+    a = check_output(['vcgencmd', 'get_throttled'])
+    a = a.split(b'=')
+    return a[1].decode('UTF-8').strip()
