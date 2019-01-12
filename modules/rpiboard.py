@@ -1,6 +1,7 @@
-from os import uname, getenv
+from os import uname, getenv, popen
 from socket import gethostname
 from subprocess import check_output, Popen, PIPE
+from modules.extras import float_trunc_1dec
 
 def is_root():
     if getenv("SUDO_USER") == None:
@@ -144,10 +145,10 @@ class Led(object):
         fla.close()
 
 def cpu_temp():
-    tempu = check_output(['cat', '/sys/class/thermal/thermal_zone0/temp'], shell=False)
-    cel = float(tempu)/1000
-    feri = cel * 1.8 + 32
-    return feri // 0.1 / 10
+    tempu = popen("vcgencmd measure_temp").readline()
+    tempu = tempu.replace("temp=","")
+    tempu = tempu.replace("'C","")
+    return float_trunc_1dec(float(tempu))
 
 def system_uptime():
     ut = check_output(['uptime', '-p'], shell=False).decode("utf-8").strip()
