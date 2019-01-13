@@ -18,6 +18,7 @@ rpi-gpio = "*"
 pygatt = {extras = ["gatttool"],version = "*"}
 bluepy = "*"
 adafruit-dht = "*"
+psutil = "*"
 
 [requires]
 python_version = "3.7"

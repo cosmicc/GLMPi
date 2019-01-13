@@ -151,7 +151,8 @@ def gitupdatecheck():
         origin.pull()
         subprocess.run('systemctl restart glmpi', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
-plock()
+pl = plock()
+pl.lock()
 
 def main():
     log.info(f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name}')
