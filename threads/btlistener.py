@@ -64,8 +64,11 @@ class btListener():
                     except BTLEDisconnectError:
                         log.debug(f'Cannot connect to device: {dev.addr} {dev.rssi} dB')
                     else:
-                        device_name = ndev.getCharacteristics(uuid='00002a00-0000-1000-8000-00805f9b34fb')[0].read().decode('UTF-8')
-                        device_appr = ndev.getCharacteristics(uuid='00002a01-0000-1000-8000-00805f9b34fb')[0].read().decode('UTF-8')
+                        try:
+                            device_name = ndev.getCharacteristics(uuid='00002a00-0000-1000-8000-00805f9b34fb')[0].read().decode('UTF-8')
+                            device_appr = ndev.getCharacteristics(uuid='00002a01-0000-1000-8000-00805f9b34fb')[0].read().decode('UTF-8')
+                        except BTLEDisconnectError:
+                            log.debug(f'Cannot connect to device: {dev.addr} {dev.rssi} dB')
                         #print(f'Device Name: {device_name}')
                         #print(f'Device Appr: {device_appr}')
                         #print(f'Device Addr: {dev.addr}')

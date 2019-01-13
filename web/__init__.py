@@ -9,8 +9,8 @@ def create_app(config_object):
     return app
 
 def register_blueprints(app):
-    from .views.views import webapi
-    app.register_blueprint(webapi, url_prefix='/api')
+    from .restapi.views import restapi
+    app.register_blueprint(restapi, url_prefix='/api')
 
 def register_extensions(app):
     if app.debug:

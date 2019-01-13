@@ -8,8 +8,8 @@ import subprocess
 import logging
 import socket
 
-webapi = Blueprint('api', __name__)
-api = Api(webapi, title='Galaxy Lighting Module RestAPI', version='1.0', doc='/')  # doc=False
+restapi = Blueprint('api', __name__)
+api = Api(restapi, title='Galaxy Lighting Module RestAPI', version='1.0', doc='/')  # doc=False
 
 
 host_name = socket.gethostname()

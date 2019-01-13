@@ -8,7 +8,7 @@ import subprocess
 import netifaces as ni
 import signal
 from os import stat
-from restapi import create_app
+from web import create_app
 from rpi_ws281x import Color
 from modules.processlock import plock
 from modules.rpiboard import cpu_temp, Led

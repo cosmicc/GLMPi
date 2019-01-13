@@ -21,8 +21,9 @@ def c2f(c):
     return float_trunc_1dec((c*9/5)+32)
 
 def End(why):
-    status_queue.put({'color': 'red', 'flashes': 3, 'flashrate': 'fast'})
-    strip_queue.put((0, 'stripoff'),)
     log.critical(f'Exiting: {why}')
-    sleep(.5)
+    status_queue.put({'color': 'red', 'flashes': 3, 'flashrate': 'fast'})
+    sleep(0.5)
+    strip_queue.put((0, 'stripoff'),)
+    sleep(0.2)
     exit(0)
