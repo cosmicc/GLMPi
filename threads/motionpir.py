@@ -2,11 +2,11 @@ from time import sleep
 from datetime import datetime
 from threads.threadqueues import strip_queue
 from configparser import ConfigParser
-from modules.extras import str2bool
+from modules.extras import str2bool, End
 import RPi.GPIO as GPIO
 import threading
 import logging
-import socket
+from socket import gethostname
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
@@ -17,7 +17,7 @@ isenabled = str2bool(config.get('motion', 'enabled'))
 warmupdelay = int(config.get('motion', 'warmupdelay'))
 motionlight = str2bool(config.get('motion', 'light'))
 
-host_name = socket.gethostname()
+host_name = gethostname()
 log = logging.getLogger(name=host_name)
 
 class motionPir():
@@ -64,5 +64,6 @@ def motionpir_thread():
                 log.debug('* Motion Stopped *')
             sleep(loopdelay)
         except:
-            log.critical(f'Critical Error in Motion Detection Thread', exc_info=True)
-            sleep(60)
+            log.critical(f'Exception in Motion Detection Thread', exc_info=True)
+            End('Exception in Motion Detection thread')
+    End('Motion Detection thread loop ended prematurely')

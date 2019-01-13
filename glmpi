@@ -3,9 +3,10 @@
 import threading
 import argparse
 import logging
-import socket
+from socket import gethostname
 import subprocess
 import netifaces as ni
+import signal
 from os import stat
 from restapi import create_app
 from rpi_ws281x import Color
@@ -22,7 +23,7 @@ from git import Repo
 from configparser import ConfigParser
 from datetime import datetime
 from time import sleep
-from modules.extras import str2bool, c2f
+from modules.extras import str2bool, c2f, End
 
 __author__ = "Ian Perry"
 __copyright__ = "Copyright 2019, Galaxy Media"
@@ -34,8 +35,7 @@ __progname__ = "glmpi"
 __description__ = "glmpi daemon service"
 __detaildesc__ = "Galaxy Lighting Module for PiZeroW"
 
-host_name = socket.gethostname()
-
+host_name = gethostname()
 log = logging.getLogger(name=host_name)
 
 config = ConfigParser()
@@ -80,6 +80,16 @@ log_fileh = logging.FileHandler(logfile)
 log_fileh.setLevel(logging.INFO)
 log_fileh.setFormatter(log_format)
 log.addHandler(log_fileh)
+
+class signal_handling:
+  ending = False
+  def __init__(self):
+    signal.signal(signal.SIGINT, self.exit_gracefully)
+    signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+  def exit_gracefully(self,signum, frame):
+    self.ending = True
+
 
 def check_logsize():
     if stat(logfile).st_size > 1000000000:
@@ -145,6 +155,7 @@ plock()
 
 def main():
     log.info(f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name}')
+    glmpi_process = signal_handling()
 
     status_thread = threading.Thread(name='statusled_thread', target=statusled_thread, daemon = True)
     status_thread.start()
@@ -191,7 +202,7 @@ def main():
     fivemin_timer = int(datetime.now().timestamp())
     onemin_timer = int(datetime.now().timestamp())
 
-    while True:
+    while not glmpi_process.ending:
         try:
             if onemin_timer+60 < int(datetime.now().timestamp()):
                 onemin_timer = int(datetime.now().timestamp())
@@ -204,17 +215,12 @@ def main():
                     gitupdatecheck()
             sleep(loopdelay)
         except KeyboardInterrupt:
-            stled('red')
-            strip_queue.put((0, 'stripoff'),)
-            sleep(.15)
-            log.critical('Exiting due to Keyboard Interrupt')
-            exit(0)
+            End('KeyboardInterrupt')
         except:
-            stled('red')
-            log.critical('Exception in main thread', exc_info=True)
-            strip_queue.put((0, 'stripoff'),)
-            sleep(.15)
-            exit(1)
+            log.critical(f'Exception in Main Thread', exc_info=True)
+            End('Exception in MainThread')
+
+    End('SIGHUP received')
 
 if __name__ == '__main__':
     main()

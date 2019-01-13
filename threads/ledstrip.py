@@ -10,9 +10,9 @@ from modules.extras import str2bool, c2f
 import modules.rpiboard as rpi
 import threading
 import logging
-import socket
+from socket import gethostname
 
-host_name = socket.gethostname()
+host_name = gethostname()
 log = logging.getLogger(name=host_name)
 
 config = ConfigParser()
@@ -517,5 +517,6 @@ def ledstrip_thread():
                 stripled.updatebrightness()
             sleep(loopdelay)
         except:
-            log.critical(f'Critical Error in Led Strip Thread', exc_info=True)
-            sleep(60)
+            log.critical(f'Exception in Led Strip Thread', exc_info=True)
+            End('Exception in Bluetooth Thread')
+    End('Bluetooth Thread loop ended prematurely')

@@ -1,14 +1,14 @@
 from configparser import ConfigParser
 from time import sleep
 import logging
-import socket
+from socket import gethostname
 import subprocess
 import Adafruit_DHT
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
 from threads.threadqueues import strip_queue
-from modules.extras import str2bool, c2f, float_trunc_1dec
+from modules.extras import str2bool, c2f, float_trunc_1dec, End
 
-host_name = socket.gethostname()
+host_name = gethostname()
 log = logging.getLogger(name=host_name)
 
 config = ConfigParser()
@@ -57,5 +57,10 @@ def tempsensor_thread():
     tempsensor = tempSensor()
     sleep(10)
     while True:
-        tempsensor.check()
-        sleep(loopdelay)
+        try:
+            tempsensor.check()
+            sleep(loopdelay)
+        except:
+            log.critical('Exception in temp sensor thread', exc_info=True)
+            End('Exception in temp sensor thread')
+    End('Temp Sensor thread loop ended prematurely')

@@ -5,13 +5,13 @@ from configparser import ConfigParser
 from modules.extras import str2bool
 import threading
 import logging
-import socket
+from socket import gethostname
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
 loopdelay = float(config.get('status_led', 'loopdelay'))
 
-host_name = socket.gethostname()
+host_name = gethostname()
 log = logging.getLogger(name=host_name)
 
 def i2rgb(RGBint, string=True):
@@ -130,5 +130,6 @@ def statusled_thread():
                 sled.on(ststatus['color'], int(ststatus['flashes']), ststatus['flashrate'])
             sleep(loopdelay)
         except:
-            log.critical(f'Critical Error in Status Led Thread', exc_info=True)
-            sleep(60)
+            log.critical(f'Exception in Status Led Thread', exc_info=True)
+            End('Exception in Status Led thread')
+    End('Status Led thread loop ended prematurely')

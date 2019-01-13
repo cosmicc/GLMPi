@@ -1,13 +1,13 @@
 from configparser import ConfigParser
 from time import sleep
 import logging
-import socket
+from socket import gethostname
 import subprocess
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
 from threads.threadqueues import restapi_queue
-from modules.extras import str2bool
+from modules.extras import str2bool, End
 
-host_name = socket.gethostname()
+host_name = gethostname()
 log = logging.getLogger(name=host_name)
 
 class ExtConfigParser(ConfigParser):
@@ -79,5 +79,10 @@ def btlistener_thread():
     log.info('Bluetooth listener thread is starting')
     btdevice = btListener()
     while True:
-        btdevice.scan()
-        sleep(loopdelay)
+        try:
+            btdevice.scan()
+            sleep(loopdelay)
+        except:
+            log.critical(f'Critical Error in Bluetooth Thread', exc_info=True)
+            End('Exception in Bluetooth Thread')
+    End('Bluetooth thread loop ended prematurely')
