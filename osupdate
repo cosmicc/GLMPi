@@ -1,5 +1,6 @@
 #!/bin/sh
 
+/opt/GLMPi/stled magenta
 apt update
 apt-get -y dist-upgrade
 apt-get -y autoremove

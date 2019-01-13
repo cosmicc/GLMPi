@@ -118,7 +118,7 @@ def check_cputemp():
 
 def check_sthub(sthubip):
     if isup_sthub(sthubip):
-        stled('green')
+        #stled('green')
         log.debug('Smartthings Hub is reachable')
         return True
     else:
@@ -155,6 +155,20 @@ pl = plock()
 pl.lock()
 
 def main():
+    def checkthreads():
+        if not status_thread.is_alive():
+            End('Status Led thread has failed')
+        if not strip_thread.is_alive():
+            End('Led Strip thread has failed')
+        if not webserver.is_alive():
+            End('Web server thread has failed')
+        if motion_enabled and not motion_thread.is_alive():
+            End('Motion Detection thread has failed')
+        if tempsensor_enabled and not temp_thread.is_alive():
+            End('Temp Sensor thread has failed')
+        if bluetooth_enabled and not bluetooth_thread.is_alive():
+            End('Bluetooth thread has failed')
+
     log.info(f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name}')
     glmpi_process = signal_handling()
 
@@ -205,6 +219,7 @@ def main():
 
     while not glmpi_process.ending:
         try:
+            checkthreads()
             if onemin_timer+60 < int(datetime.now().timestamp()):
                 onemin_timer = int(datetime.now().timestamp())
                 check_cputemp()

@@ -25,7 +25,7 @@ class plock:
             os.mknod(self.lockfile, mode=0x600)
         self.lock_handle = open(self.lockfile, 'w')
 
-    def lock(self):
+    def lock(self, retry=0):
         def aquireLock(self):
             try:
                 fcntl.lockf(self.lock_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -45,14 +45,15 @@ class plock:
         else:
             # do pid checking
             log.warning('Process is locked. Another instance is running.')
-    #        time.sleep(5)
-    #    for numtries in range(1):
-    #        if aquireLock():
-    #            lock_handle.write(ppid)
-    #            atexit.register(unlock)
-    #            return True
-    #        else:
-    #            time.sleep(5)
+            if retry != 0:
+                for each in range(retry):
+                    time.sleep(5)
+                    if aquireLock():
+                        lock_handle.write(self.ppid)
+                        self.lock_handle.close()
+                        atexit.register(self.unlock)
+                        return True
+
         log.error('Could not obtain process lock. Exiting')
         exit(1)
 
@@ -65,10 +66,3 @@ class plock:
             pass
         if os.path.isfile(self.lockfile):
             os.remove(self.lockfile)
-
-def cleanName(filename):
-    filename = os.path.basename(filename)
-    filename = filename.rsplit('.', 1)[0]
-    return filename
-
-
