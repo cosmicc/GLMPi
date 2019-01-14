@@ -178,9 +178,6 @@ def check_internet():
         return False
 
 
-def get_ip_address():
-    return ni.ifaddresses('wlan0')[ni.AF_INET][0]['addr']
-
 
 def gitupdatecheck():
     repo = Repo('/opt/GLMPi')
@@ -247,11 +244,10 @@ def main():
 
     sleep(1)
 
-    host_ip = get_ip_address()
-    log.info(f'Starting RestAPI Server on IP: {host_ip} PORT: {webserver_port}')
+    log.info(f'Starting RestAPI Server on PORT: {webserver_port}')
     try:
         app = create_app('config.BaseConfig')
-        webserver = threading.Thread(name='webserver', target=app.run, kwargs={'host': host_ip, 'port': webserver_port}, daemon = True)
+        webserver = threading.Thread(name='webserver', target=app.run, kwargs={'host': '0.0.0.0', 'port': webserver_port}, daemon = True)
         webserver.start()
     except:
         log.critical(f'RestAPI Server failed to start with IP:{host_ip} PORT:{webserver_port}', exc_info=True)

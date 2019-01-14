@@ -22,6 +22,9 @@ def is_zero():
     else:
         return False
 
+def get_ip_address():
+    return ni.ifaddresses('wlan0')[ni.AF_INET][0]['addr']
+
 def rpi_mem():
     memory = {}
     armmem = check_output(['/usr/bin/vcgencmd', 'get_mem', 'arm'], shell=False)
