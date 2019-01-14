@@ -183,3 +183,8 @@ def get_throttled():
     a = check_output(['vcgencmd', 'get_throttled'])
     a = a.split(b'=')
     return a[1].decode('UTF-8').strip()
+
+def get_swap():
+    a = check_output(['cat', '/proc/swaps'])
+    a = a.decode('UTF-8').split('\n')[1].split('\t')
+    return int(int(a[3])/1000),int(int(a[2])/1000)

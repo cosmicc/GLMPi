@@ -11,12 +11,12 @@ import socket
 restapi = Blueprint('api', __name__)
 api = Api(restapi, title='Galaxy Lighting Module RestAPI', version='1.0', doc='/')  # doc=False
 
-
 host_name = socket.gethostname()
 log = logging.getLogger(name=host_name)
 
+configfile = '/etc/glmpi.conf'
 config = ConfigParser()
-config.read('/etc/glmpi.conf')
+config.read(configfile)
 
 def getconfig():
     printconfig = {}
@@ -180,17 +180,31 @@ class Alarms(Resource):
 
 @api.route('/alarms/reset')
 class Alarmsreset(Resource):
-    def put(self):
+    def post(self):
         alarm_queue.put(['alarmsreset',])
         return restapi_queue.get()
 
 
 @api.route('/config')
+@api.doc(params={'section': 'section', 'option': 'option', 'value': 'value'})
 class Config(Resource):
     def get(self):
         return getconfig()
+    def post(self):
+        if config.has_section(request.args.get("section")):
+            if config.has_option(request.args.get("section"),request.args.get("option")):
+                log.info(f'Received config setting change: [{request.args.get("section")}] {request.args.get("option")} = {request.args.get("value")}')
+                config.set(request.args.get("section"),request.args.get("option"),request.args.get("value"))
+                config.write(configfile)
+                return 'SUCCESS'
+            else:
+                return 'INVALID OPTION'
+        else:
+            return 'INVALID SECTION'
 
 @api.route('/time')
 class Time(Resource):
     def get(self):
         return calcbright(data=True)
+
+

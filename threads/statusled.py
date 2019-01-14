@@ -2,7 +2,7 @@ from time import sleep
 from rpi_ws281x import *
 from threads.threadqueues import status_queue
 from configparser import ConfigParser
-from modules.extras import str2bool
+from modules.extras import str2bool, End
 import threading
 import logging
 from socket import gethostname

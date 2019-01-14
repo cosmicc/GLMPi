@@ -7,7 +7,7 @@ from socket import gethostname
 import subprocess
 import netifaces as ni
 import signal
-from os import stat
+from os import stat, statvfs
 from web import create_app
 from rpi_ws281x import Color
 from modules.processlock import plock
@@ -92,6 +92,23 @@ class signal_handling:
   def exit_gracefully(self,signum, frame):
     self.ending = True
 
+def check_storagespace():
+    def exitout(drive):
+        log.critical('Storage {drive} is under 50M. Shutting down')
+        stled('red', flashes=5, flashrate='fast')
+        strip_queue.put((0, 'stripoff'),)
+        alarm_queue.put(['Storage {drive} is under 50M. Shutting down'])
+        sleep(3)
+        exit(3)
+    part1 = statvfs('/')
+    part2 = statvfs('/var')
+    part3 = statvfs('/opt')
+    if part1.f_frsize * part1.f_bavail / 1024 < 51200:
+        exitout('/')
+    if part2.f_frsize * part2.f_bavail / 1024 < 51200:
+        exitout('/var')
+    if part3.f_frsize * part3.f_bavail / 1024 < 51200:
+        exitout('/opt')
 
 def check_logsize():
     if stat(logfile).st_size > 1000000000:
@@ -144,7 +161,6 @@ def check_internet():
         stled('green')
         log.debug('Internet is reachable')
         wifiinfo = get_wifi_info()
-        alarm_queue.put([f'Low Wireless Signal: {wifiinfo["signal"]} dB / {sigwarndb} dB'])
         if wifiinfo["signal"] < sigwarndb:
             stled('yellow', flashes=5, flashrate='slow')
             if sigtimethrottle > datetime.now()-timedelta(hours=1):
