@@ -6,7 +6,7 @@ from configparser import ConfigParser
 from pathlib import Path
 from pickle import dump as pdump, load as pload
 from modules.timehelper import calcbright
-from modules.extras import str2bool, c2f
+from modules.extras import str2bool, c2f, get_wifi_info
 import modules.rpiboard as rpi
 import threading
 import logging
@@ -166,7 +166,7 @@ class ledStrip():
             ttemp = rpi.cpu_temp()
         elif self.temp_units == 'F':
             ttemp = c2f(rpi.cpu_temp())
-        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'cputemp': ttemp, 'cyclehue': self.cyclehue, 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'tempurature': self.tempurature, 'humidity': self.humidity, 'motion': self.motion, 'lastmotion': self.lastmotion.strftime("%Y-%m-%d %H:%M:%S"), 'cpuspeed': rpi.get_cpuspeed(), 'cputhrottled': rpi.get_throttled(), 'uptime': rpi.system_uptime(), 'cpuload': rpi.get_load(), 'memory': rpi.get_freemem(), 'storage': rpi.get_diskspace(), 'release': rpi.get_release(), 'system': rpi.rpi_info()}
+        return {'hostname': host_name, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'cputemp': ttemp, 'cyclehue': self.cyclehue, 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'tempurature': self.tempurature, 'humidity': self.humidity, 'motion': self.motion, 'lastmotion': self.lastmotion.strftime("%Y-%m-%d %H:%M:%S"), 'cpuspeed': rpi.get_cpuspeed(), 'cputhrottled': rpi.get_throttled(), 'uptime': rpi.system_uptime(), 'cpuload': rpi.get_load(), 'memory': rpi.get_freemem(), 'storage': rpi.get_diskspace(), 'wireless': get_wifi_info(), 'release': rpi.get_release(), 'system': rpi.rpi_info()}
 
     def transition(self, currentColor, targetColor, duration, fps):
         distance = colorDistance(currentColor, targetColor)

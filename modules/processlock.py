@@ -5,10 +5,12 @@ import fcntl
 import logging
 import atexit
 import socket
+import stat
 
 host_name = socket.gethostname()
 log = logging.getLogger(name=host_name)
 
+mode = mode = 0o600|stat.S_IRUSR
 
 class plock:
     def __init__(self):
@@ -22,7 +24,7 @@ class plock:
         self.progname =  os.path.basename(sys.argv[0])
         self.lockfile = f'{lpath}/{self.progname}.pid'
         if not os.path.isfile(self.lockfile):
-            os.mknod(self.lockfile, mode=0x600)
+            os.mknod(self.lockfile, mode=mode)
         self.lock_handle = open(self.lockfile, 'w')
 
     def lock(self, retry=0):

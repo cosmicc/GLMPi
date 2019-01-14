@@ -1,7 +1,7 @@
 from flask import request, Blueprint
 from flask_restplus import Api, Resource, fields
 from threads.statusled import stled
-from threads.threadqueues import restapi_queue, strip_queue
+from threads.threadqueues import restapi_queue, strip_queue, alarm_queue
 from modules.timehelper import calcbright
 from configparser import ConfigParser
 import subprocess
@@ -171,6 +171,19 @@ class Info(Resource):
     def get(self):
         strip_queue.put((18, 'getinfo'),)
         return restapi_queue.get()
+
+@api.route('/alarms')
+class Alarms(Resource):
+    def get(self):
+        alarm_queue.put(['getalarms',])
+        return restapi_queue.get()
+
+@api.route('/alarms/reset')
+class Alarmsreset(Resource):
+    def put(self):
+        alarm_queue.put(['alarmsreset',])
+        return restapi_queue.get()
+
 
 @api.route('/config')
 class Config(Resource):

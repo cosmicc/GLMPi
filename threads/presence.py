@@ -20,7 +20,8 @@ class ExtConfigParser(ConfigParser):
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
-loopdelay = int(config.get('bluetooth', 'scandelay'))
+loopdelay = int(config.get('presence', 'scandelay'))
+ismaster = str2bool(config.get('master_controller', 'enabled'))
 
 class ScanDelegate(DefaultDelegate):
     def __init__(self):
@@ -39,9 +40,9 @@ class btListener():
     def __init__(self):
         config = ExtConfigParser()
         config.read('/etc/glmpi.conf')
-        self.beacon = str2bool(config.get('bluetooth', 'beacon'))
-        self.whitelist = config.getlist('bluetooth', 'presence')
-        self.scantime = int(config.get('bluetooth', 'scantime'))
+        self.beacon = str2bool(config.get('presence', 'bluetooth_beacon'))
+        self.whitelist = config.getlist('presence', 'bluetooth_names')
+        self.scantime = int(config.get('presence', 'bluetooth_scantime'))
         log.debug(f'Initializing bluetooth interface HCI0')
         subprocess.run(['/bin/hciconfig', 'hci0', 'up'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
         if self.beacon:
@@ -75,17 +76,36 @@ class btListener():
                         #print(f'Device Type: {dev.addrType}')
                         #print(f'Device Signal: {dev.rssi} dB')
                         if device_name in self.whitelist or device_appr in self.whitelist:
-                            log.info(f'{device_name} IN RANGE! {dev.rssi}')
+                            log.info(f'Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB')
+
+class arpListener():
+    def __init__(self):
+        config = ExtConfigParser()
+        config.read('/etc/glmpi.conf')
+        self.arpmacs = config.getlist('presence', 'wifiMACs')
+    def scan(self):
+        p = subprocess.Popen("arp-scan -l", stdout=subprocess.PIPE, shell=True)
+        (output, err) = p.communicate()
+        p_status = p.wait()
+        output = output.decode('UTF-8').split('\n')
+        for each in output:
+            line = (each.split('\t'))
+            if len(line) > 2:
+                if line[1] in self.arpmacs:
+                    log.info(f'Device {line[1]} SEEN ON WIFI!')
 
 
-def btlistener_thread():
-    log.info('Bluetooth listener thread is starting')
+def pres_thread():
+    log.info('Presence detection thread is starting')
     btdevice = btListener()
+    arpscanner = arpListener()
     while True:
         try:
+            if ismaster:
+                arpscanner.scan()
             btdevice.scan()
             sleep(loopdelay)
         except:
-            log.critical(f'Critical Error in Bluetooth Thread', exc_info=True)
-            End('Exception in Bluetooth Thread')
-    End('Bluetooth thread loop ended prematurely')
+            log.critical(f'Exception in Presence Thread', exc_info=True)
+            End('Exception in Presence Thread')
+    End('Presence thread loop ended prematurely')

@@ -6,6 +6,7 @@ import argparse
 from datetime import datetime
 from modules.extras import float_trunc_1dec
 from modules.rpiboard import is_root
+from modules.colorizer import BGRN, BRED, BYEL, RST, BCYN, BWHT
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-u', '--userlevel', action='store_true', help='Non-Root user level check')
@@ -14,10 +15,10 @@ args = parser.parse_args()
 pidfile = '/run/glmpi.pid'
 
 if not os.path.isfile(pidfile):
-    print('GLMPi is NOT RUNNING')
+    print(f'{BRED}GLMPi is NOT RUNNING{RST}')
 else:
     if not is_root():
-        print('GLMPi is running')
+        print(f'{BGRN}GLMPi is running{RST}')
         exit(0)
     with open(pidfile) as f:
         glmpi_pid = f.readline()
@@ -26,16 +27,17 @@ else:
 
     p = psutil.Process(glmpi_pid)
 
-
-    print(f'GLMPi is {p.status()} [{glmpi_pid}] Nice: {p.nice()} CPU: {p.cpu_percent(interval=1.0)}% MEM: {float_trunc_1dec(p.memory_percent())}% Threads: {p.num_threads()}')
-    print(f'Started: {datetime.fromtimestamp(int(p.create_time()))}')
-    print(f'CPU Times: {p.cpu_times()}')
-    print(f'Memory: {p.virtual_memory()}')
+    print(' ')
+    print(f'GLMPi is {BGRN}{p.status()}{RST} [{glmpi_pid}] Nice: {BCYN}{p.nice()}{RST} CPU: {BCYN}{p.cpu_percent(interval=2.0)}%{RST} MEM: {BCYN}{float_trunc_1dec(p.memory_percent())}%{RST} Threads: {BCYN}{p.num_threads()}{RST}')
+    print(f'Started: {BCYN}{datetime.fromtimestamp(int(p.create_time()))}{RST}')
+    print(f'CPU Times: {BYEL}{p.cpu_times()}{RST}')
+    print(f'Memory: {BYEL}{p.memory_info()}{RST}')
     print('Threads:')
     for each in p.threads():
-        print(each)
+        print(f'{BWHT}{each}{RST}')
     print('Connections:')
-    print(p.connections())
+    print(f'{BWHT}{p.connections()}{RST}')
     print('Open Files:')
-    print(p.open_files())
+    print(f'{BWHT}{p.open_files()}{RST}')
+    print(' ')
 

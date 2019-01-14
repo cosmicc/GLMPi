@@ -14,11 +14,11 @@ gitpython = "*"
 pytz = "*"
 astral = "*"
 netifaces = "*"
-rpi-gpio = "*"
-pygatt = {extras = ["gatttool"],version = "*"}
+pygatt = {version = "*",extras = ["gatttool"]}
 bluepy = "*"
 adafruit-dht = "*"
 psutil = "*"
+colored = "*"
 
 [requires]
 python_version = "3.7"

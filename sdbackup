@@ -58,13 +58,14 @@ def unmountbackup():
     try:
         if os.path.ismount(mount_path):
             os.system('sync')
+            time.sleep(3)
             cmd = ['umount', mount_path]
             rc, streamdata = execmd(cmd)
             if rc != 0:
                 log.error(f'Error when trying to unmount: {mount_path} - Code: {rc}')
                 exit(1)
             else:
-                time.sleep(5)
+                time.sleep(10)
                 if not os.path.ismount(mount_path):
                     log.error(f'Error after unmount: {mount_path} still mounted')
                     exit(1)
@@ -89,8 +90,9 @@ def startbackup():
     try:
         full_name = f'{backup_path}/{backup_filename}'
         log.info(f'Starting image backup to: {full_name}')
-        #cmd = ['dd', 'if=/dev/mmcblk0', '|', 'pv', '-s', '4G', '|', 'gzip', '>', full_name,'bs=4096']
-        os.system(f'dd if=/dev/mmcblk0 bs=4096 | pv -s 14G | gzip > {full_name}')
+        #cmd = ['dd', 'if=/dev/mmcblk0p2', '|', 'pv', '-s', '4G', '|', 'gzip', '>', full_name,'bs=4096']
+        #os.system(f'dd if=/dev/mmcblk0p1 bs=4096 | pv -s 44M | gzip >{full_name}')
+        os.system(f'dd if=/dev/mmcblk0p2 bs=4096 | pv -s 14G | gzip > {full_name}')
         #rc, streamdata = execmd(cmd)
         log.info('Image backup completing')
     except:

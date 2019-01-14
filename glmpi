@@ -12,18 +12,19 @@ from web import create_app
 from rpi_ws281x import Color
 from modules.processlock import plock
 from modules.rpiboard import cpu_temp, Led
-from threads.threadqueues import strip_queue, status_queue
+from threads.threadqueues import strip_queue, status_queue, alarm_queue
 from modules.wifitools import isup_internet, isup_sthub
 from threads.statusled import statusled_thread, stled
 from threads.ledstrip import ledstrip_thread
 from threads.motionpir import motionpir_thread
-from threads.btlistener import btlistener_thread
+from threads.presence import pres_thread
 from threads.tempsensor import tempsensor_thread
+from threads.alarmhandler import alarms_thread
 from git import Repo
 from configparser import ConfigParser
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
-from modules.extras import str2bool, c2f, End
+from modules.extras import str2bool, c2f, End, get_wifi_info
 
 __author__ = "Ian Perry"
 __copyright__ = "Copyright 2019, Galaxy Media"
@@ -48,9 +49,10 @@ cputemp_shutdown = float(config.get('general', 'cputemp_shutdown'))
 sthubip = config.get('general', 'smartthings_hub_ip')
 loopdelay = int(config.get('general', 'mainloopdelay'))
 motion_enabled = str2bool(config.get('motion', 'enabled'))
-bluetooth_enabled = str2bool(config.get('bluetooth', 'enabled'))
+presence_enabled = str2bool(config.get('presence', 'enabled'))
 tempsensor_enabled = str2bool(config.get('temp_sensor', 'enabled'))
 temp_units = config.get('general', 'temp_units')
+sigwarndb = int(config.get('general', 'wifi_warning_db'))
 
 parser = argparse.ArgumentParser(prog=__progname__)
 parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
@@ -96,6 +98,7 @@ def check_logsize():
         log.critical('GLMPi log over 1Gig. Shutting down')
         stled('red', flashes=5, flashrate='fast')
         strip_queue.put((0, 'stripoff'),)
+        alarm_queue.put(['GLMPi log over 1Gig. Shutting down'])
         sleep(3)
         exit(3)
 
@@ -108,11 +111,17 @@ def check_cputemp():
         stled('red', flashes=5, flashrate='fast')
         strip_queue.put((0, 'stripoff'),)
         log.critical(f'CPU OVER TEMP - SHUTTING DOWN: {cputemp}*{temp_units} > {cputemp_shutdown}*{temp_units}')
+        alarm_queue.put(['CPU temp critical: {cputemp}*{temp_units} > {cputemp_warning}*{temp_units}'])
+        sleep(1)
         subprocess.run('shutdown now', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
         exit(2)
     elif cputemp > cputemp_warning:
-        log.warning(f'CPU temp warning: {cputemp}*{temp_units} > {cputemp_warning}*{temp_units}')
+        global temptimethrottle
         stled('yellow', flashes=5, flashrate='fast')
+        if temptimethrottle > datetime.now()-timedelta(hours=1):
+            temptimethrottle = datetime.now()
+            log.warning(f'CPU temp warning: {cputemp}*{temp_units} > {cputemp_warning}*{temp_units}')
+            alarm_queue.put(['CPU temp warning: {cputemp}*{temp_units} > {cputemp_warning}*{temp_units}'])
     else:
         log.debug(f'CPU temp: {cputemp}*{temp_units}, Warning at {cputemp_warning}*{temp_units}, Shutdown at {cputemp_shutdown}*{temp_units}')
 
@@ -122,18 +131,34 @@ def check_sthub(sthubip):
         log.debug('Smartthings Hub is reachable')
         return True
     else:
+        global shubtimethrottle
         stled('red', flashes=5)
-        log.info('Smartthings Hub is DOWN')
+        if inettimethrottle > datetime.now()-timedelta(hours=1):
+            shubtimethrottle = datetime.now()
+            log.warning('Smartthings Hub is unreachable')
+            alarm_queue.put(['Internet is unreachable'])
         return False
 
 def check_internet():
     if isup_internet():
         stled('green')
         log.debug('Internet is reachable')
+        wifiinfo = get_wifi_info()
+        alarm_queue.put([f'Low Wireless Signal: {wifiinfo["signal"]} dB / {sigwarndb} dB'])
+        if wifiinfo["signal"] < sigwarndb:
+            stled('yellow', flashes=5, flashrate='slow')
+            if sigtimethrottle > datetime.now()-timedelta(hours=1):
+                sigtimethrottle = datetime.now()
+                log.warning(f'Low Wireless signal: {wifiinfo["signal"]} dB / {sigwarndb} dB')
+                alarm_queue.put([f'Low Wireless Signal: {wifiinfo["signal"]} dB / {sigwarndb} dB'])
         return True
     else:
+        global inettimethrottle
         stled('red', flashes=5, flashrate='slow')
-        log.info('Internet is DOWN')
+        if inettimethrottle > datetime.now()-timedelta(hours=1):
+            inettimethrottle = datetime.now()
+            log.warning('Internet is unreachable')
+            alarm_queue.put(['Internet is unreachable'])
         return False
 
 
@@ -154,10 +179,21 @@ def gitupdatecheck():
 pl = plock()
 pl.lock()
 
+temptimethrottle = datetime.now()-timedelta(hours=1)
+inettimethrottle = datetime.now()-timedelta(hours=1)
+shubtimethrottle = datetime.now()-timedelta(hours=1)
+sigtimethrottle = datetime.now()-timedelta(hours=1)
+
+
 def main():
+    global temptimethrottle
+    global inettimethrottle
+    global shubtimethrottle
     def checkthreads():
         if not status_thread.is_alive():
             End('Status Led thread has failed')
+        if not alarm_thread.is_alive():
+            End('Alarm Handler thread has failed')
         if not strip_thread.is_alive():
             End('Led Strip thread has failed')
         if not webserver.is_alive():
@@ -166,8 +202,8 @@ def main():
             End('Motion Detection thread has failed')
         if tempsensor_enabled and not temp_thread.is_alive():
             End('Temp Sensor thread has failed')
-        if bluetooth_enabled and not bluetooth_thread.is_alive():
-            End('Bluetooth thread has failed')
+        if presence_enabled and not presence_thread.is_alive():
+            End('Presence thread has failed')
 
     log.info(f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name}')
     glmpi_process = signal_handling()
@@ -178,6 +214,9 @@ def main():
     log.debug('Shutting off on board pi status led')
     boardled = Led('status')
     boardled.ledoff()
+
+    alarm_thread = threading.Thread(name='alarm_thread', target=alarms_thread, daemon = True)
+    alarm_thread.start()
 
     check_cputemp()
     check_logsize()
@@ -210,9 +249,9 @@ def main():
         temp_thread = threading.Thread(name='tempsensor_thread', target=tempsensor_thread, daemon = True)
         temp_thread.start()
 
-    if bluetooth_enabled:
-        bluetooth_thread = threading.Thread(name='bluetooth_thread', target=btlistener_thread, daemon = True)
-        bluetooth_thread.start()
+    if presence_enabled:
+        presence_thread = threading.Thread(name='presence_thread', target=pres_thread, daemon = True)
+        presence_thread.start()
 
     fivemin_timer = int(datetime.now().timestamp())
     onemin_timer = int(datetime.now().timestamp())
@@ -231,12 +270,12 @@ def main():
                     gitupdatecheck()
             sleep(loopdelay)
         except KeyboardInterrupt:
-            End('KeyboardInterrupt')
+            End('KeyboardInterrupt', alarm=False)
         except:
             log.critical(f'Exception in Main Thread', exc_info=True)
             End('Exception in MainThread')
 
-    End('SIGHUP received')
+    End('SIGHUP received', alarm=False)
 
 if __name__ == '__main__':
     main()
