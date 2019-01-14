@@ -195,7 +195,8 @@ class Config(Resource):
             if config.has_option(request.args.get("section"),request.args.get("option")):
                 log.info(f'Received config setting change: [{request.args.get("section")}] {request.args.get("option")} = {request.args.get("value")}')
                 config.set(request.args.get("section"),request.args.get("option"),request.args.get("value"))
-                config.write(configfile)
+                with open(configfile, 'w') as config_file:
+                    config.write(config_file)
                 return 'SUCCESS'
             else:
                 return 'INVALID OPTION'

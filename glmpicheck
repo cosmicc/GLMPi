@@ -15,10 +15,10 @@ args = parser.parse_args()
 pidfile = '/run/glmpi.pid'
 
 if not os.path.isfile(pidfile):
-    print(f'{BRED}GLMPi is NOT RUNNING{RST}')
+    print(f'{BRED}NOT RUNNING{RST}')
 else:
     if not is_root():
-        print(f'{BGRN}GLMPi is running{RST}')
+        print(f'{BGRN}RUNNING{RST}')
         exit(0)
     with open(pidfile) as f:
         glmpi_pid = f.readline()
