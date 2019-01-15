@@ -193,13 +193,11 @@ def gitupdatecheck():
 
     origin = repo.remotes.origin
     origin.fetch()
-    if repo.head.commit != origin.refs[0].commit:
+    if repo.head.commit != origin.refs[0].commit and repo.active_branch.name == 'production':
         stled('magenta')
         log.warning(f'New GLM version found on repo {gitbranch}. updating and restarting...')
-        if repo.active_branch.name == 'master-stable':
-            log.debug('Cleaning and resetting local git repo before pull')
-            repo.git.reset('--hard')
-            repo.git.clean('-xdf')
+        repo.git.reset('--hard')
+        repo.git.clean('-xdf')
         origin.pull()
         subprocess.run('systemctl restart glmpi', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 

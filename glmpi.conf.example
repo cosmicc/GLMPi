@@ -1,0 +1,101 @@
+[general]
+gitbranch = production
+logfile = /opt/glmpi.log
+savestate = /opt/glmpi.sav
+alarms = /opt/glmpialarms.csv
+restapi_port = 51500
+# temperature units C or F
+temp_units = F
+# signal strength warning threshold in dB
+wifi_warning_db = -75
+# cpu temperature warning threashold
+cputemp_warning = 130.0
+# cpu temerature shutdown threshold
+cputemp_shutdown = 160.0
+# ip address or dns names of smartthings hub
+smartthings_hub_ip = st-24FD5B000000C0B7
+# loop delay for main thread
+mainloopdelay = 1
+
+[master_controller]
+# this device is the master device controller
+enabled = True
+# list of ip addresses or dns names of the slave glmpi's this will control
+slaves = GLM2, GLM3, GLM4, GLM5
+
+[presence]
+enabled = True
+# this device will be a bluetooth ble beacon
+bluetooth_beacon = True
+# how long to scan for ble devices in range in seconds
+bluetooth_scantime = 15
+# names of ble presence devices to look for while scanning
+bluetooth_names = MyPhone, OtherPhone, OtherBLE
+# mac addresses of presence devices to look for on wifi
+wifimacs = 00:00:00:00:00:11, 00:00:00:00:00:12
+scandelay = 30
+
+[motion]
+enabled = True
+# turn Led strip on white when in motion
+light = False
+# delay after startup before motion sensor is active in seconds
+warmupdelay = 20
+# delay after motion before motion is considered stopped
+stopdelay = 60
+# loop delay while in motion to check for motion end
+stoploopdelay = 1
+# motion thread loop delay
+loopdelay = 0.05
+
+[led_strip]
+ledcount = 30
+pin = 18
+channel = 0
+dma = 10
+frequency = 800000
+invert = False
+# fade speed between tansitions
+fadespeed = 0.1
+# preset auto-brightness levels
+lowbright = 64
+medbright = 127
+highbright = 191
+fullbright = 255
+# led strip thread loop delay
+loopdelay = 0.1
+
+[nightlight]
+# led strip when in night mode instead of black
+enabled = True
+# color of the nightlight
+red = 20
+green = 10
+blue = 0
+
+[animations]
+rainbow_speed = 10
+
+[temp_sensor]
+enabled = True
+sensor_type = DHT11
+pin = 24
+# temp sensor thread loop delay
+loopdelay = 60
+
+# default settings are set for a neopixel strip pf leds
+[status_led]
+pin = 19
+channel = 1
+dma = 12
+frequency = 800000
+invert = False
+# status led overall brightness x/255
+brightness = 5
+# delay for a fast blink
+blinkrate_fast = 0.1
+# delay for a slow blink
+blinkrate_slow = 0.5
+# status led thread delay
+loopdelay = 0.5
+
