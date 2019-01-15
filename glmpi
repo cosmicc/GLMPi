@@ -54,6 +54,7 @@ presence_enabled = str2bool(config.get('presence', 'enabled'))
 tempsensor_enabled = str2bool(config.get('temp_sensor', 'enabled'))
 temp_units = config.get('general', 'temp_units')
 sigwarndb = int(config.get('general', 'wifi_warning_db'))
+gitbranch = config.get('general', 'gitbranch')
 
 parser = argparse.ArgumentParser(prog=__progname__)
 parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
@@ -182,11 +183,22 @@ def check_internet():
 
 def gitupdatecheck():
     repo = Repo('/opt/GLMPi')
-    origin = repo.remotes.origin
-    origin.fetch()
+
+    if repo.active_branch.name != gitbranch:
+        if not gitbranch in [h.name for h in repo.heads]:
+            # make branch before checkout
+            log.warning(f'Git branch {gitbranch} doesnt exist locally, creating')
+        log.warning(f'Switching to Git repository: {gitbranch}')
+        repo.heads[gitbranch].checkout()
+
+    origin = repo.remotes.origin.fetch()
     if repo.head.commit != origin.refs[0].commit:
         stled('magenta')
-        log.warning(f'New GLMPi version found on repo. updating and restarting...')
+        log.warning(f'New GLM version found on repo {gitbranch}. updating and restarting...')
+        if repo.active_branch.name == 'master-stable':
+            log.debug('Cleaning and resetting local git repo before pull')
+            repo.git.reset('--hard')
+            repo.git.clean('-xdf')
         origin.pull()
         subprocess.run('systemctl restart glmpi', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
