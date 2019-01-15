@@ -191,7 +191,8 @@ def gitupdatecheck():
         log.warning(f'Switching to Git repository: {gitbranch}')
         repo.heads[gitbranch].checkout()
 
-    origin = repo.remotes.origin.fetch()
+    origin = repo.remotes.origin
+    origin.fetch()
     if repo.head.commit != origin.refs[0].commit:
         stled('magenta')
         log.warning(f'New GLM version found on repo {gitbranch}. updating and restarting...')
