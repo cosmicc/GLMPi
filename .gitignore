@@ -25,7 +25,7 @@ wheels/
 *.egg
 MANIFEST
 
-test/
+tests/
 *test.py
 test*.py
 
