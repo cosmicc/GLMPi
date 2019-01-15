@@ -1,0 +1,43 @@
+#!/usr/local/bin/python3.7m
+
+import psutil
+import os
+import argparse
+from datetime import datetime
+from modules.extras import float_trunc_1dec
+from modules.rpiboard import is_root
+from modules.colorizer import BGRN, BRED, BYEL, RST, BCYN, BWHT
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-u', '--userlevel', action='store_true', help='Non-Root user level check')
+args = parser.parse_args()
+
+pidfile = '/run/glmpi.pid'
+
+if not os.path.isfile(pidfile):
+    print(f'{BRED}NOT RUNNING{RST}')
+else:
+    if not is_root():
+        print(f'{BGRN}RUNNING{RST}')
+        exit(0)
+    with open(pidfile) as f:
+        glmpi_pid = f.readline()
+
+    glmpi_pid = int(glmpi_pid)
+
+    p = psutil.Process(glmpi_pid)
+
+    print(' ')
+    print(f'GLMPi is {BGRN}{p.status()}{RST} [{glmpi_pid}] Nice: {BCYN}{p.nice()}{RST} CPU: {BCYN}{p.cpu_percent(interval=2.0)}%{RST} MEM: {BCYN}{float_trunc_1dec(p.memory_percent())}%{RST} Threads: {BCYN}{p.num_threads()}{RST}')
+    print(f'Started: {BCYN}{datetime.fromtimestamp(int(p.create_time()))}{RST}')
+    print(f'CPU Times: {BYEL}{p.cpu_times()}{RST}')
+    print(f'Memory: {BYEL}{p.memory_info()}{RST}')
+    print('Threads:')
+    for each in p.threads():
+        print(f'{BWHT}{each}{RST}')
+    print('Connections:')
+    print(f'{BWHT}{p.connections()}{RST}')
+    print('Open Files:')
+    print(f'{BWHT}{p.open_files()}{RST}')
+    print(' ')
+

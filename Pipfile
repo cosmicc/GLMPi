@@ -1,0 +1,25 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+rpi-ws281x = "*"
+flask = "*"
+flask-restplus = "*"
+python-wifi = "*"
+gitpython = "*"
+pytz = "*"
+astral = "*"
+netifaces = "*"
+pygatt = {extras = ["gatttool"],version = "*"}
+bluepy = "*"
+adafruit-dht = "*"
+psutil = "*"
+colored = "*"
+requests = "*"
+
+[requires]
+python_version = "3.7"
