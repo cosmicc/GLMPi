@@ -1,13 +1,14 @@
 #!/usr/local/bin/python3.7m
 
 import threading
+import multiprocessing
 import argparse
 import logging
 from socket import gethostname
 import subprocess
 import netifaces as ni
 import signal
-from os import stat, statvfs
+from os import stat, statvfs, nice
 from web import create_app
 from rpi_ws281x import Color
 from modules.processlock import plock
@@ -221,6 +222,9 @@ def main():
     log.info(f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name}')
     glmpi_process = signal_handling()
 
+    log.debug('Setting process niceness to -10')
+    nice(-10)
+
     status_thread = threading.Thread(name='statusled_thread', target=statusled_thread, daemon = True)
     status_thread.start()
 
@@ -237,6 +241,7 @@ def main():
     if check_internet():
         gitupdatecheck()
 
+    #multiprocessing.set_start_method('spawn')
     strip_thread = threading.Thread(name='ledstrip_thread', target=ledstrip_thread, daemon = True)
     strip_thread.start()
 
@@ -283,11 +288,15 @@ def main():
             sleep(loopdelay)
         except KeyboardInterrupt:
             End('KeyboardInterrupt', alarm=False)
+            webserver.terminate()
+            strip_thread.terminate()
         except:
             log.critical(f'Exception in Main Thread', exc_info=True)
             End('Exception in MainThread')
 
     End('SIGHUP received', alarm=False)
+    webserver.terminate()
+    strip_thread.terminate()
 
 if __name__ == '__main__':
     main()

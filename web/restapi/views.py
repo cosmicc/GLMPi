@@ -18,6 +18,7 @@ configfile = '/etc/glmpi.conf'
 config = ConfigParser()
 config.read(configfile)
 
+
 def getconfig():
     printconfig = {}
     for section in config.sections():
@@ -29,25 +30,25 @@ def getconfig():
 @api.route('/reset')
 @api.doc(params={'type': 'soft/hard'})
 class DeviceReset(Resource):
-    def post(self):
+    def put(self):
         if request.args.get("type") == 'soft':
             log.warning('SOFT RESET recieved from restapi, restarting glmpi service')
             subprocess.run(['/bin/systemctl', 'restart', 'glmpi'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
-            return 'SUCCESS'
+            return 'Success', 200
         elif request.args.get("type") == 'hard':
             log.warning('HARD RESET recieved from restapi, restarting pi')
             subprocess.run(['/sbin/reboot'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
-            return 'SUCCESS'
+            return 'Success', 200
         else:
-            return 'ERROR'
+            return 'Invalid Type', 400
 
 @api.route('/night')
 @api.doc(params={'night': 'on/off'})
 class DeviceNight(Resource):
-    def post(self):
+    def put(self):
         if request.args.get("night") == 'on' or request.args.get("night") == '1' or request.args.get("night") == 'true':
             strip_queue.put((5, 'nighton'),)
-            return 'SUCCESS'
+            return 'Success', 200 
         elif request.args.get("night") == 'off' or request.args.get("night") == '0' or request.args.get("night") == 'false':
             strip_queue.put((5, 'nightoff'),)
             return 'SUCCESS'
@@ -60,7 +61,7 @@ class DeviceNight(Resource):
 @api.route('/away')
 @api.doc(params={'away': 'on/off'})
 class DeviceAway(Resource):
-    def post(self):
+    def put(self):
         if request.args.get("away") == 'on' or request.args.get("away") == '1' or request.args.get("away") == 'true':
             strip_queue.put((5, 'awayon'),)
             return 'SUCCESS'
@@ -77,7 +78,7 @@ class DeviceAway(Resource):
 @api.route('/enable')
 @api.doc(params={'enable': 'on/off'})
 class DeviceEnable(Resource):
-    def post(self):
+    def put(self):
         if request.args.get("enable") == 'on' or request.args.get("enable") == '1' or request.args.get("enable") == 'true':
             strip_queue.put((5, 'enable'),)
             return 'SUCCESS'
@@ -94,7 +95,7 @@ class DeviceEnable(Resource):
 @api.route('/rgbcolor')
 @api.doc(params={'red': '255', 'green': '255', 'blue': '255'})
 class RGBColor(Resource):
-    def post(self):
+    def put(self):
         try:
             if int(request.args.get("red")) < 0 or int(request.args.get("red")) > 255:
                 return 'INVALID RED VALUE'
@@ -113,7 +114,7 @@ class RGBColor(Resource):
 @api.route('/hsvcolor')
 @api.doc(params={'hue': '359', 'saturation': '100', 'lightness': '100'})
 class HSVColor(Resource):
-    def post(self):
+    def put(self):
         try:
             if int(request.args.get("hue")) < 0 or int(request.args.get("hue")) > 359:
                 return 'INVALID HUE VALUE'
@@ -132,9 +133,9 @@ class HSVColor(Resource):
 @api.route('/whitetemp')
 @api.doc(params={'kelvin': '6500'})
 class Whitetemp(Resource):
-    def post(self):
+    def put(self):
         strip_queue.put((15, 'whitetemp', request.args.get("kelvin")),)
-        return 'SUCCESS'
+        return 200
     def get(self):
         strip_queue.put((18, 'getwhitetemp'),)
         return restapi_queue.get()
@@ -142,12 +143,12 @@ class Whitetemp(Resource):
 @api.route('/mode')
 @api.doc(params={'mode': '1'})
 class Mode(Resource):
-    def post(self):
+    def put(self):
         if int(request.args.get("mode")) > 0 and int(request.args.get("mode")) < 10:
             strip_queue.put((15, 'mode', request.args.get("mode")),)
-            return 'SUCCESS'
+            return 200
         else:
-            return 'INVALID MODE'
+            return 400
     def get(self):
         strip_queue.put((18, 'getmode'),)
         return restapi_queue.get()
@@ -155,12 +156,14 @@ class Mode(Resource):
 @api.route('/cyclehue')
 @api.doc(params={'hue': '359'})
 class Cyclecolor(Resource):
-    def post(self):
+    def put(self):
+        if request.args.get("hue") is None:
+            return 400
         if int(request.args.get("hue")) >= 0 and int(request.args.get("hue")) < 360:
             strip_queue.put((10, 'cyclehue', request.args.get("hue")),)
-            return 'SUCCESS'
+            return 200
         else:
-            return 'INVALID MODE'
+            return 400
     def get(self):
         strip_queue.put((18, 'getcyclehue'),)
         return restapi_queue.get()
@@ -180,7 +183,7 @@ class Alarms(Resource):
 
 @api.route('/alarms/reset')
 class Alarmsreset(Resource):
-    def post(self):
+    def put(self):
         alarm_queue.put(['alarmsreset',])
         return restapi_queue.get()
 
@@ -190,7 +193,7 @@ class Alarmsreset(Resource):
 class Config(Resource):
     def get(self):
         return getconfig()
-    def post(self):
+    def put(self):
         if config.has_section(request.args.get("section")):
             if config.has_option(request.args.get("section"),request.args.get("option")):
                 log.info(f'Received config setting change: [{request.args.get("section")}] {request.args.get("option")} = {request.args.get("value")}')

@@ -8,6 +8,7 @@ import subprocess
 import logging
 import socket
 import requests
+import threading
 
 masterapi = Blueprint('masterapi', __name__)
 api = Api(masterapi, title='Galaxy Lighting Module Master Controller RestAPI', version='1.0', doc='/')  # doc=False
@@ -30,16 +31,28 @@ config.read(configfile)
 hosts = config.getlist('master_controller', 'slaves')
 
 def sendrequest(request, opt, val):
-    for host in hosts:
+    def sendrequest_thread(host, request, opt, val):
         sreq = f'http://{host}:51500/api/{request}'
         log.warning(f'{sreq} - {opt} - {val}')
-        r = requests.post(sreq, data={opt: val})
-        return r.status_code, r.reason
+        try:
+            r = requests.put(sreq, data={opt: val})
+        except requests.exceptions.ConnectionError:
+            log.warning(f'Master controller connection failed to: {host} - {request} {opt} {val}')
+        else:
+            if r.status_code != 200:
+                log.warning(f'Master controller send error {r.status_code} to: {sreq} {opt}:{val}')
+            else:
+                log.warning(f'Master controller send successful to: {sreq} {opt}:{val}')
+    log.warning(f'HOSTS: {hosts}')
+    for host in hosts:
+        cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host,request,opt,val), daemon = True)
+        cont_send_thread.start()
+
 
 @api.route('/reset')
 @api.doc(params={'type': 'soft/hard'})
 class DeviceReset(Resource):
-    def post(self):
+    def put(self):
         if request.args.get("type") == 'soft':
             log.warning('SOFT RESET recieved from Masterapi, restarting glmpi service')
             sendrequest('reset', 'type', 'soft')
@@ -51,4 +64,11 @@ class DeviceReset(Resource):
         else:
             return 'ERROR'
 
+@api.route('/cyclehue')
+@api.doc(params={'hue': '359'})
+class DeviceReset(Resource):
+    def put(self):
+            log.debug('Cycle hue change received by the masterapi')
+            sendrequest('cyclehue', 'hue', request.args.get("hue"))
+            return 'SUCCESS'
 
