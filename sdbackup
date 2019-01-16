@@ -9,7 +9,7 @@ log = logging.getLogger()
 
 console_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] : %(message)s', '%Y-%m-%d %H:%M:%S')
 log_console = logging.StreamHandler()
-log_console.setLevel(logging.DEBUG)
+log_console.setLevel(logging.INFO)
 log.addHandler(log_console)
 log_console.setFormatter(console_format)
 
@@ -17,15 +17,16 @@ mount_path = '/mnt/storage'
 backup_path = '/root/backup'
 remote_mount = '172.25.1.20:/storage'
 
-with open('/imageversion') as f:
+with open('/version') as f:
     image_version = f.readline()
 image_version = int(image_version)
 newimage_version = int(image_version)+1
 
 timestr = time.strftime("%Y%m%d")
-backup_filename = f'GLMPi-SDImage-{timestr}-v{newimage_version}.gz'
+backup_filename = f'glmpi-squashfs-fullsd-{timestr}-v{newimage_version}.img'
 
 def execmd(cmd):
+    log.info(f'Executing command: {cmd}')
     try:
         child = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=False)
         streamdata = child.communicate()[0].decode('UTF-8').strip()
@@ -50,6 +51,7 @@ def mountbackup():
                     log.error(f'Error after mount: {mount_path} still not mounted')
                     exit(1)
                 else:
+                    log.info(f'Path {mount_path} has been mounted')
                     return True
     except:
         log.critical(f'Critical Error in mountbackup(). Exiting. Trace:', exc_info=True)
@@ -66,10 +68,11 @@ def unmountbackup():
                 exit(1)
             else:
                 time.sleep(10)
-                if not os.path.ismount(mount_path):
+                if os.path.ismount(mount_path):
                     log.error(f'Error after unmount: {mount_path} still mounted')
                     exit(1)
                 else:
+                    log.info(f'Path {mount_path} has been un-mounted')
                     return True
         else:
             log.warning(f'Trying to unmount {mount_path} but is already unmounted')
@@ -79,24 +82,24 @@ def unmountbackup():
 
 def advanceimagever():
     try:
-        imageversion_file = open('/imageversion','w')
+        imageversion_file = open('/version','w')
         imageversion_file.write(str(newimage_version))
         imageversion_file.close()
-        log.info(f'Updated image version from {image_version} to {newimage_version}')
     except:
         log.critical(f'Critical Error in advanceimagever(). Exiting. Trace:', exc_info=True)
+    else:
+        log.info(f'Updated image version from {image_version} to {newimage_version}')
 
 def startbackup():
-    try:
         full_name = f'{backup_path}/{backup_filename}'
         log.info(f'Starting image backup to: {full_name}')
-        #cmd = ['dd', 'if=/dev/mmcblk0p2', '|', 'pv', '-s', '4G', '|', 'gzip', '>', full_name,'bs=4096']
-        #os.system(f'dd if=/dev/mmcblk0p1 bs=4096 | pv -s 44M | gzip >{full_name}')
-        os.system(f'dd if=/dev/mmcblk0p2 bs=4096 | pv -s 14G | gzip > {full_name}')
-        #rc, streamdata = execmd(cmd)
-        log.info('Image backup completing')
-    except:
-        log.critical(f'Critical Error in startbackup(). Exiting. Trace:', exc_info=True)
+        try:
+            os.system(f"mksquashfs /srv {full_name} -p 'sd.img f 444 root root dd if=/dev/mmcblk0 bs=4M'")
+            #os.system(f'dd if=/dev/mmcblk0p2 bs=4096 | pv -s 14G | gzip > {full_name}')
+        except:
+            log.critical(f'Critical Error in startbackup(). Exiting. Trace:', exc_info=True)
+        else:
+            log.info(f'Image backup complete to: {full_name}')
 
 #dd if=/dev/mmcblk0 | pv -s 4.1G | gzip > /root/backup/GLPMPi-baseimage-v1.gz bs=4096
 
