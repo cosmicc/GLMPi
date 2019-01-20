@@ -36,13 +36,13 @@ def sendrequest(request, opt, val):
         try:
             r = requests.put(sreq, data={opt: val})
         except requests.exceptions.ConnectionError:
-            log.warning(f'Master controller connection failed to: {host} - {sreq}')
+            log.debug(f'Master controller connection failed to: {host} - {sreq}')
         else:
             if r.status_code != 200:
-                log.warning(f'Master controller send error {r.status_code} to: {sreq}')
+                log.debug(f'Master controller send error {r.status_code} to: {sreq}')
             else:
                 log.debug(f'Master controller send successful to: {sreq}')
-    log.warning(f'HOSTS: {hosts}')
+    log.debug(f'Sending to hosts: {hosts}')
     for host in hosts:
         cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, opt, val), daemon=True)
         cont_send_thread.start()
