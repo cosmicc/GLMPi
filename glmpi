@@ -16,7 +16,7 @@ from threads.statusled import statusled_thread, stled
 from threads.ledstrip import ledstrip_thread
 from threads.motionpir import motionpir_thread
 from threads.presence import pres_thread
-from threads.tempsensor import tempsensor_thread
+from threads.sensors import tempsensor_thread
 from threads.alarmhandler import alarms_thread
 from git import Repo
 from configparser import ConfigParser
