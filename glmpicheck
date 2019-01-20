@@ -40,4 +40,3 @@ else:
     print('Open Files:')
     print(f'{BWHT}{p.open_files()}{RST}')
     print(' ')
-

@@ -1,6 +1,6 @@
 from time import sleep
 from datetime import datetime
-from rpi_ws281x import *
+from rpi_ws281x import Color, Adafruit_NeoPixel
 from threads.threadqueues import strip_queue, restapi_queue
 from configparser import ConfigParser
 from pathlib import Path
@@ -19,6 +19,7 @@ config = ConfigParser()
 config.read('/etc/glmpi.conf')
 loopdelay = float(config.get('led_strip', 'loopdelay'))
 
+
 def colorwheel(pos):
     if pos < 85:
         return Color(pos * 3, 255 - pos * 3, 0)
@@ -36,6 +37,7 @@ def colorDistance(currentColor, targetColor):
         distance[i] = abs(currentColor[i] - targetColor[i])
     return distance
 
+
 def calculateIncrement(distance, fps, duration):
     increment = [0, 0, 0]
     for i in range(len(distance)):
@@ -50,46 +52,59 @@ def hexPercent(color):
 
 
 def i2rgb(RGBint, string=True):
-    blue =  RGBint & 255
+    blue = RGBint & 255
     green = (RGBint >> 8) & 255
-    red =   (RGBint >> 16) & 255
+    red = (RGBint >> 16) & 255
     if string:
         return f'({red}, {green}, {blue})'
     else:
         return (red, green, blue)
 
+
 def hsv_to_rgb(h, s, v):
     h = h / 360.
-    s = (s / float(100) ) * 1
-    v = (v / float(100) ) * 1
-    if s == 0.0: v*=255; return (v, v, v)
-    i = int(h*6.)
-    f = (h*6.)-i; p,q,t = int(255*(v*(1.-s))), int(255*(v*(1.-s*f))), int(255*(v*(1.-s*(1.-f)))); v*=255; i%=6
-    if i == 0: return (v, t, p)
-    if i == 1: return (q, v, p)
-    if i == 2: return (p, v, t)
-    if i == 3: return (p, q, v)
-    if i == 4: return (t, p, v)
-    if i == 5: return (v, p, q)
+    s = (s / float(100)) * 1
+    v = (v / float(100)) * 1
+    if s == 0.0:
+        v *= 255
+        return (v, v, v)
+    i = int(h * 6.)
+    f = (h * 6.) - i
+    p, q, t = int(255 * (v * (1. - s))), int(255 * (v * (1. - s * f))), int(255 * (v * (1. - s * (1. - f))))
+    v *= 255
+    i %= 6
+    if i == 0:
+        return (v, t, p)
+    if i == 1:
+        return (q, v, p)
+    if i == 2:
+        return (p, v, t)
+    if i == 3:
+        return (p, q, v)
+    if i == 4:
+        return (t, p, v)
+    if i == 5:
+        return (v, p, q)
+
 
 def rgb_to_hsv(r, g, b):
-    r, g, b = r/255.0, g/255.0, b/255.0
+    r, g, b = r / 255.0, g / 255.0, b / 255.0
     mx = max(r, g, b)
     mn = min(r, g, b)
-    df = mx-mn
+    df = mx - mn
     if mx == mn:
         h = 0
     elif mx == r:
-        h = (60 * ((g-b)/df) + 360) % 360
+        h = (60 * ((g - b) / df) + 360) % 360
     elif mx == g:
-        h = (60 * ((b-r)/df) + 120) % 360
+        h = (60 * ((b - r) / df) + 120) % 360
     elif mx == b:
-        h = (60 * ((r-g)/df) + 240) % 360
+        h = (60 * ((r - g) / df) + 240) % 360
     if mx == 0:
         s = 0
     else:
-        s = (df/mx)*100
-    v = mx*100
+        s = (df / mx) * 100
+    v = mx * 100
     return h, s, v
 
 
@@ -118,7 +133,7 @@ class ledStrip():
         self.nightlight_color = Color(int(config.get('nightlight', 'red')), int(config.get('nightlight', 'green')), int(config.get('nightlight', 'blue')))
         self.motion = False
         if Path(self.statefile).is_file():
-            infile = open(self.statefile,'rb')
+            infile = open(self.statefile, 'rb')
             state_dict = pload(infile)
             infile.close()
             self.mode = state_dict['mode']
@@ -175,7 +190,7 @@ class ledStrip():
         increment = calculateIncrement(distance, fps, duration)
         for i in range(0, int(fps)):
             ledStrip.transitionStep(self, currentColor, targetColor, increment)
-            sleep(duration/fps)
+            sleep(duration / fps)
 
     def transitionStep(self, currentColor, targetColor, increment):
         for i in range(len(currentColor)):
@@ -188,13 +203,11 @@ class ledStrip():
                 if currentColor[i] >= targetColor[i]:
                     increment[i] = 0
 
-        #print(f'r:{int(color[0])} g:{int(color[1])} b:{int(color[2])}')
+        # print(f'r:{int(color[0])} g:{int(color[1])} b:{int(color[2])}')
         ncolor = Color(int(currentColor[0]), int(currentColor[1]), int(currentColor[2]))
         for led in range(self.ledcount):
             self.strip.setPixelColor(led, ncolor)
         self.strip.show()
-
-
 
     def updatebrightness(self):
         newbright = calcbright()
@@ -207,24 +220,24 @@ class ledStrip():
 
     def startup(self):
         self.illuminated = True
-        for led in range(int(self.ledcount/2)+1):
-            self.strip.setPixelColor(int(self.ledcount/2)+led, ledStrip.blue)
-            self.strip.setPixelColor(int(self.ledcount/2)+led+1, Color(0, 0, 100))
-            self.strip.setPixelColor(int(self.ledcount/2)+led+2, Color(0, 0, 30))
-            self.strip.setPixelColor(int(self.ledcount/2)-led, ledStrip.blue)
-            self.strip.setPixelColor(int(self.ledcount/2)-led-1, Color(0, 0, 100))
-            self.strip.setPixelColor(int(self.ledcount/2)-led-2, Color(0, 0, 30))
+        for led in range(int(self.ledcount / 2) + 1):
+            self.strip.setPixelColor(int(self.ledcount / 2) + led, ledStrip.blue)
+            self.strip.setPixelColor(int(self.ledcount / 2) + led + 1, Color(0, 0, 100))
+            self.strip.setPixelColor(int(self.ledcount / 2) + led + 2, Color(0, 0, 30))
+            self.strip.setPixelColor(int(self.ledcount / 2) - led, ledStrip.blue)
+            self.strip.setPixelColor(int(self.ledcount / 2) - led - 1, Color(0, 0, 100))
+            self.strip.setPixelColor(int(self.ledcount / 2) - led - 2, Color(0, 0, 30))
             self.strip.show()
             sleep(.02)
         sleep(.3)
-        for led in range(int(self.ledcount/2)+1):
+        for led in range(int(self.ledcount / 2) + 1):
             self.strip.setPixelColor(led, ledStrip.black)
-            if led < (int(self.ledcount/2))-1:
-                self.strip.setPixelColor(led+1, Color(0, 0, 100))
-                self.strip.setPixelColor(led+2, Color(0, 0, 30))
-                self.strip.setPixelColor(self.ledcount-led-1, Color(0, 0, 100))
-                self.strip.setPixelColor(self.ledcount-led-2, Color(0, 0, 30))
-            self.strip.setPixelColor(self.ledcount-led, ledStrip.black)
+            if led < (int(self.ledcount / 2)) - 1:
+                self.strip.setPixelColor(led + 1, Color(0, 0, 100))
+                self.strip.setPixelColor(led + 2, Color(0, 0, 30))
+                self.strip.setPixelColor(self.ledcount - led - 1, Color(0, 0, 100))
+                self.strip.setPixelColor(self.ledcount - led - 2, Color(0, 0, 30))
+            self.strip.setPixelColor(self.ledcount - led, ledStrip.black)
             self.strip.show()
             sleep(.02)
         self.illuminated = False
@@ -236,8 +249,8 @@ class ledStrip():
 
     def savestate(self):
         statedata = {'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': self.color, 'lastcolor': self.lastcolor, 'pricolor': self.pricolor, 'white': self.white, 'brightness': self.brightness, 'lastmotion': self.lastmotion}
-        outfile = open(self.statefile,'wb')
-        pdump(statedata,outfile)
+        outfile = open(self.statefile, 'wb')
+        pdump(statedata, outfile)
         outfile.close()
         log.debug(f'Saving state data: {statedata}')
 
@@ -266,7 +279,7 @@ class ledStrip():
                 self.mode = mode
             ledStrip.savestate(self)
             if ledStrip.preprocess(self):
-                rainbow_thread = threading.Thread(name='rainbow_thread', target=ledStrip.rainbowCycle, args=(self,), daemon = True)
+                rainbow_thread = threading.Thread(name='rainbow_thread', target=ledStrip.rainbowCycle, args=(self,), daemon=True)
                 rainbow_thread.start()
         elif mode == 5:
             if mode != self.mode:
@@ -274,7 +287,7 @@ class ledStrip():
                 self.mode = mode
             if ledStrip.preprocess(self):
                 pass
-                #ledStrip.rainbowCycle(self)
+                # ledStrip.rainbowCycle(self)
         else:
             log.warning(f'Invalid mode received: {mode}')
 
@@ -322,7 +335,7 @@ class ledStrip():
     def whitetempchange(self, kelvin):
         bluemin = 40
         kelvinmin = 2000
-        kelvinmax  = 6500
+        kelvinmax = 6500
         newblue = (((kelvin - kelvinmin) * (255 - bluemin)) / (kelvinmax - kelvinmin)) + bluemin
         self.white = Color(255, 255, int(newblue))
         ledStrip.modeset(self, 2)
@@ -363,10 +376,9 @@ class ledStrip():
                     self.strip.show()
                     if self.mode != 4 or self.night or not self.on or self.away or (self.motion and self.motionlight):
                         break
-                    sleep(rwait/1000)
+                    sleep(rwait / 1000)
         except:
             log.critical(f'Critical Error in rainbow cycle Thread', exc_info=True)
-
 
     def processmotion(self, cmotion):
         self.lastmotion = datetime.now()
@@ -389,11 +401,11 @@ class ledStrip():
         ledStrip.modeset(self, 1)
 
     def hsvcolor(self, h, s, v):
-       r, g, b = hsv_to_rgb(float(h),float(s),float(v))
-       log.warning(f'r: {r} g: {g} b: {b}')
-       newcolor = Color(int(r), int(g), int(b))
-       self.pricolor = newcolor
-       ledStrip.modeset(self, 1)
+        r, g, b = hsv_to_rgb(float(h), float(s), float(v))
+        log.warning(f'r: {r} g: {g} b: {b}')
+        newcolor = Color(int(r), int(g), int(b))
+        self.pricolor = newcolor
+        ledStrip.modeset(self, 1)
 
     def device_enable(self):
         if not self.on:
@@ -443,6 +455,7 @@ class ledStrip():
     def tempupdate(self, temp, humidity):
         self.tempurature = temp
         self.humidity = humidity
+
 
 def ledstrip_thread():
     log.info('Led strip thread is starting')
@@ -511,10 +524,10 @@ def ledstrip_thread():
                     a.update({'value': v})
                     restapi_queue.put(a)
                 elif ststatus[1] == 'tempupdate':
-                    stripled.tempupdate(ststatus[2],ststatus[3])
+                    stripled.tempupdate(ststatus[2], ststatus[3])
                 else:
                     log.warning(f'led strip queue message is invalid: {ststatus}')
-            if stime+60 < int(datetime.now().timestamp()):
+            if stime + 60 < int(datetime.now().timestamp()):
                 stime = int(datetime.now().timestamp())
                 stripled.updatebrightness()
             sleep(loopdelay)

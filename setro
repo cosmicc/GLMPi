@@ -1,0 +1,6 @@
+#!/bin/bash
+
+mount $1 -o remount,ro
+echo " "
+echo "$1 is now set to Read-Only"
+echo " "

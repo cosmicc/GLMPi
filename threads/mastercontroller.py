@@ -2,11 +2,8 @@ from configparser import ConfigParser
 from time import sleep
 import logging
 from socket import gethostname
-import subprocess
-import Adafruit_DHT
-from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
-from threads.threadqueues import strip_queue
-from modules.extras import str2bool, c2f, float_trunc_1dec, End
+from threads.threadqueues import master_queue
+from modules.extras import c2f, float_trunc_1dec, End
 
 host_name = gethostname()
 log = logging.getLogger(name=host_name)
@@ -14,6 +11,7 @@ log = logging.getLogger(name=host_name)
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
 loopdelay = int(config.get('temp_sensor', 'loopdelay'))
+
 
 class tempSensor():
     def __init__(self):
@@ -34,6 +32,7 @@ class tempSensor():
             log.error(f'1wire temp sensor - invalid sensor type: {self.sensor_type}')
             exit(1)
         log.info(f'Initialized 1wire temp sensor: {self.sensor_type} on pin: {self.pin}')
+
     def check(self):
         try:
             hum, tmp = Adafruit_DHT.read_retry(self.sensor, self.pin)
@@ -51,6 +50,7 @@ class tempSensor():
             log.debug(f'Tempurature={self.temp}*{self.units}  Humidity={self.humidity}%')
         else:
             log.warning(f'Failed getting temp/humidity sensor reading')
+
 
 def tempsensor_thread():
     log.info('Temp/Humidity thread is starting')
