@@ -1,14 +1,12 @@
 from flask import request, Blueprint
 from flask_restplus import Api, Resource
 from configparser import ConfigParser
-from loguru import logger
+from loguru import logger as log
 import requests
 import threading
 
 masterapi = Blueprint('masterapi', __name__)
 api = Api(masterapi, title='Galaxy Lighting Module Master Controller RestAPI', version='1.0', doc='/')  # doc=False
-
-log = logger()
 
 
 class ExtConfigParser(ConfigParser):
