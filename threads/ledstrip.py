@@ -203,7 +203,7 @@ class ledStrip():
                 if currentColor[i] >= targetColor[i]:
                     increment[i] = 0
 
-        log.debug(f'r:{int(currentColor[0])} g:{int(currentColor[1])} b:{int(currentColor[2])}')
+        # log.debug(f'r:{int(currentColor[0])} g:{int(currentColor[1])} b:{int(currentColor[2])}')
         ncolor = Color(int(currentColor[0]), int(currentColor[1]), int(currentColor[2]))
         for led in range(self.ledcount):
             self.strip.setPixelColor(led, ncolor)
