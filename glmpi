@@ -18,6 +18,7 @@ from threads.motionpir import motionpir_thread
 from threads.presence import pres_thread
 from threads.sensors import tempsensor_thread
 from threads.alarmhandler import alarms_thread
+from threads.mastercontroller import mastercontroller_thread
 from git import Repo
 from configparser import ConfigParser
 from datetime import datetime, timedelta
@@ -52,6 +53,7 @@ tempsensor_enabled = str2bool(config.get('temp_sensor', 'enabled'))
 temp_units = config.get('general', 'temp_units')
 sigwarndb = int(config.get('general', 'wifi_warning_db'))
 gitbranch = config.get('general', 'gitbranch')
+master_enabled = str2bool(config.get('master_controller', 'enabled'))
 
 parser = argparse.ArgumentParser(prog=__progname__)
 parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
@@ -288,6 +290,10 @@ def main():
     if presence_enabled:
         presence_thread = threading.Thread(name='presence_thread', target=pres_thread, daemon=True)
         presence_thread.start()
+
+    if master_enabled:
+        master_thread = threading.Thread(name='mastercontroller_thread', target=mastercontroller_thread, daemon=True)
+        master_thread.start()
 
     hour_timer = int(datetime.now().timestamp())
     onemin_timer = int(datetime.now().timestamp())
