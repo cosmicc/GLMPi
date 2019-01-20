@@ -26,6 +26,7 @@ log_fileh.setLevel(logging.CRITICAL)
 log_fileh.setFormatter(log_format)
 log.addHandler(log_fileh)
 
+
 def insert_alarm(alarm):
         dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         Row = [str(dt), f"{alarm}"]
@@ -34,8 +35,10 @@ def insert_alarm(alarm):
             alarm_writer = csv.writer(a_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             alarm_writer.writerow(Row)
 
+
 def main():
     insert_alarm(args.alarm)
+
 
 if __name__ == '__main__':
     main()

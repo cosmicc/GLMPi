@@ -1,19 +1,16 @@
 #!/usr/local/bin/python3.7m
 
 import threading
-import multiprocessing
 import argparse
 import logging
 from socket import gethostname
 import subprocess
-import netifaces as ni
 import signal
 from os import stat, statvfs, nice
 from web import create_app
-from rpi_ws281x import Color
 from modules.processlock import plock
 from modules.rpiboard import cpu_temp, Led
-from threads.threadqueues import strip_queue, status_queue, alarm_queue
+from threads.threadqueues import strip_queue, alarm_queue
 from modules.wifitools import isup_internet, isup_sthub
 from threads.statusled import statusled_thread, stled
 from threads.ledstrip import ledstrip_thread
@@ -85,14 +82,17 @@ log_fileh.setLevel(logging.INFO)
 log_fileh.setFormatter(log_format)
 log.addHandler(log_fileh)
 
-class signal_handling:
-  ending = False
-  def __init__(self):
-    signal.signal(signal.SIGINT, self.exit_gracefully)
-    signal.signal(signal.SIGTERM, self.exit_gracefully)
 
-  def exit_gracefully(self,signum, frame):
-    self.ending = True
+class signal_handling:
+    ending = False
+
+    def __init__(self):
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+    def exit_gracefully(self, signum, frame):
+        self.ending = True
+
 
 def check_storagespace():
     def exitout(drive):
@@ -112,6 +112,7 @@ def check_storagespace():
     if part3.f_frsize * part3.f_bavail / 1024 < 51200:
         exitout('/opt')
 
+
 def check_logsize():
     if stat(logfile).st_size > 1000000000:
         log.critical('GLMPi log over 1Gig. Shutting down')
@@ -120,6 +121,7 @@ def check_logsize():
         alarm_queue.put(['GLMPi log over 1Gig. Shutting down'])
         sleep(3)
         exit(3)
+
 
 def check_cputemp():
     if temp_units == 'C':
@@ -137,35 +139,38 @@ def check_cputemp():
     elif cputemp > cputemp_warning:
         global temptimethrottle
         stled('yellow', flashes=5, flashrate='fast')
-        if temptimethrottle > datetime.now()-timedelta(hours=1):
+        if temptimethrottle > datetime.now() - timedelta(hours=1):
             temptimethrottle = datetime.now()
             log.warning(f'CPU temp warning: {cputemp}*{temp_units} > {cputemp_warning}*{temp_units}')
             alarm_queue.put(['CPU temp warning: {cputemp}*{temp_units} > {cputemp_warning}*{temp_units}'])
     else:
         log.debug(f'CPU temp: {cputemp}*{temp_units}, Warning at {cputemp_warning}*{temp_units}, Shutdown at {cputemp_shutdown}*{temp_units}')
 
+
 def check_sthub(sthubip):
     if isup_sthub(sthubip):
-        #stled('green')
+        # stled('green')
         log.debug('Smartthings Hub is reachable')
         return True
     else:
         global shubtimethrottle
         stled('red', flashes=5)
-        if inettimethrottle > datetime.now()-timedelta(hours=1):
+        if inettimethrottle > datetime.now() - timedelta(hours=1):
             shubtimethrottle = datetime.now()
             log.warning('Smartthings Hub is unreachable')
             alarm_queue.put(['Internet is unreachable'])
         return False
 
+
 def check_internet():
+    global sigtimethrottle
     if isup_internet():
         stled('green')
         log.debug('Internet is reachable')
         wifiinfo = get_wifi_info()
         if wifiinfo["signal"] < sigwarndb:
             stled('yellow', flashes=5, flashrate='slow')
-            if sigtimethrottle > datetime.now()-timedelta(hours=1):
+            if sigtimethrottle > datetime.now() - timedelta(hours=1):
                 sigtimethrottle = datetime.now()
                 log.warning(f'Low Wireless signal: {wifiinfo["signal"]} dB / {sigwarndb} dB')
                 alarm_queue.put([f'Low Wireless Signal: {wifiinfo["signal"]} dB / {sigwarndb} dB'])
@@ -173,19 +178,18 @@ def check_internet():
     else:
         global inettimethrottle
         stled('red', flashes=5, flashrate='slow')
-        if inettimethrottle > datetime.now()-timedelta(hours=1):
+        if inettimethrottle > datetime.now() - timedelta(hours=1):
             inettimethrottle = datetime.now()
             log.warning('Internet is unreachable')
             alarm_queue.put(['Internet is unreachable'])
         return False
 
 
-
 def gitupdatecheck():
     subprocess.run('mount /opt -o remount,rw', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
     repo = Repo('/opt/GLMPi')
     if repo.active_branch.name != gitbranch:
-        if not gitbranch in [h.name for h in repo.heads]:
+        if gitbranch not in [h.name for h in repo.heads]:
             # make branch before checkout
             log.warning(f'Git branch {gitbranch} doesnt exist locally, creating')
         log.warning(f'Switching to Git repository: {gitbranch}')
@@ -202,19 +206,21 @@ def gitupdatecheck():
         subprocess.run('systemctl restart glmpi', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
     subprocess.run('mount /opt -o remount,ro', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
+
 pl = plock()
 pl.lock()
 
-temptimethrottle = datetime.now()-timedelta(hours=1)
-inettimethrottle = datetime.now()-timedelta(hours=1)
-shubtimethrottle = datetime.now()-timedelta(hours=1)
-sigtimethrottle = datetime.now()-timedelta(hours=1)
+temptimethrottle = datetime.now() - timedelta(hours=1)
+inettimethrottle = datetime.now() - timedelta(hours=1)
+shubtimethrottle = datetime.now() - timedelta(hours=1)
+sigtimethrottle = datetime.now() - timedelta(hours=1)
 
 
 def main():
     global temptimethrottle
     global inettimethrottle
     global shubtimethrottle
+
     def checkthreads():
         if not status_thread.is_alive():
             End('Status Led thread has failed')
@@ -237,14 +243,14 @@ def main():
     log.debug('Setting process niceness to -10')
     nice(-10)
 
-    status_thread = threading.Thread(name='statusled_thread', target=statusled_thread, daemon = True)
+    status_thread = threading.Thread(name='statusled_thread', target=statusled_thread, daemon=True)
     status_thread.start()
 
     log.debug('Shutting off on board pi status led')
     boardled = Led('status')
     boardled.ledoff()
 
-    alarm_thread = threading.Thread(name='alarm_thread', target=alarms_thread, daemon = True)
+    alarm_thread = threading.Thread(name='alarm_thread', target=alarms_thread, daemon=True)
     alarm_thread.start()
 
     check_cputemp()
@@ -253,8 +259,8 @@ def main():
     if check_internet():
         gitupdatecheck()
 
-    #multiprocessing.set_start_method('spawn')
-    strip_thread = threading.Thread(name='ledstrip_thread', target=ledstrip_thread, daemon = True)
+    # multiprocessing.set_start_method('spawn')
+    strip_thread = threading.Thread(name='ledstrip_thread', target=ledstrip_thread, daemon=True)
     strip_thread.start()
 
     check_sthub(sthubip)
@@ -264,22 +270,22 @@ def main():
     log.info(f'Starting RestAPI Server on PORT: {webserver_port}')
     try:
         app = create_app('config.BaseConfig')
-        webserver = threading.Thread(name='webserver', target=app.run, kwargs={'host': '0.0.0.0', 'port': webserver_port}, daemon = True)
+        webserver = threading.Thread(name='webserver', target=app.run, kwargs={'host': '0.0.0.0', 'port': webserver_port}, daemon=True)
         webserver.start()
     except:
-        log.critical(f'RestAPI Server failed to start with IP:{host_ip} PORT:{webserver_port}', exc_info=True)
+        log.critical(f'RestAPI Server failed to start on port:{webserver_port}', exc_info=True)
         stled('red', flashes=10, flashrate='fast')
 
     if motion_enabled:
-        motion_thread = threading.Thread(name='motion_thread', target=motionpir_thread, daemon = True)
+        motion_thread = threading.Thread(name='motion_thread', target=motionpir_thread, daemon=True)
         motion_thread.start()
 
     if tempsensor_enabled:
-        temp_thread = threading.Thread(name='tempsensor_thread', target=tempsensor_thread, daemon = True)
+        temp_thread = threading.Thread(name='tempsensor_thread', target=tempsensor_thread, daemon=True)
         temp_thread.start()
 
     if presence_enabled:
-        presence_thread = threading.Thread(name='presence_thread', target=pres_thread, daemon = True)
+        presence_thread = threading.Thread(name='presence_thread', target=pres_thread, daemon=True)
         presence_thread.start()
 
     hour_timer = int(datetime.now().timestamp())
@@ -288,12 +294,12 @@ def main():
     while not glmpi_process.ending:
         try:
             checkthreads()
-            if onemin_timer+60 < int(datetime.now().timestamp()):
+            if onemin_timer + 60 < int(datetime.now().timestamp()):
                 onemin_timer = int(datetime.now().timestamp())
                 check_cputemp()
                 check_sthub(sthubip)
                 check_logsize()
-            if hour_timer+3600 < int(datetime.now().timestamp()):
+            if hour_timer + 3600 < int(datetime.now().timestamp()):
                 hour_timer = int(datetime.now().timestamp())
                 if check_internet():
                     gitupdatecheck()
@@ -309,6 +315,7 @@ def main():
     End('SIGHUP received', alarm=False)
     webserver.terminate()
     strip_thread.terminate()
+
 
 if __name__ == '__main__':
     main()

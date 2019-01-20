@@ -7,8 +7,10 @@ from socket import gethostname
 host_name = gethostname()
 log = logging.getLogger(name=host_name)
 
+
 def str2bool(v):
-  return str(v).lower() in ("yes", "true", "t", "1")
+    return str(v).lower() in ("yes", "true", "t", "1")
+
 
 def float_trunc_1dec(num):
     try:
@@ -18,8 +20,10 @@ def float_trunc_1dec(num):
     else:
         return tnum
 
+
 def c2f(c):
-    return float_trunc_1dec((c*9/5)+32)
+    return float_trunc_1dec((c * 9 / 5) + 32)
+
 
 def End(why, alarm=True):
     log.critical(f'Exiting: {why}')
@@ -30,6 +34,7 @@ def End(why, alarm=True):
     strip_queue.put((0, 'stripoff'),)
     sleep(0.2)
     exit(0)
+
 
 def get_wifi_info():
     child = subprocess.Popen(['iwconfig'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
@@ -44,9 +49,10 @@ def get_wifi_info():
             elif each.find('Link Quality') != -1:
                 linkqual = each.split('=')[1].split(' Signal level')[0].strip()
                 signal = int(each.split('=')[2].split(' ')[0].strip())
-                #-80 -30  0 100
+                # -80 -30  0 100
                 signal_percent = int(0 + (100 - 0) * ((signal - -80) / (-35 - -80)))
-                if signal_percent > 100: signal_percent = 100
+                if signal_percent > 100:
+                    signal_percent = 100
             elif each.find('Bit Rate') != -1:
                 bitrate = each.split('=')[1].split('Tx-Power')[0].strip()
 

@@ -1,7 +1,11 @@
 #!/bin/sh
 
 /opt/GLMPi/stled magenta
+mount / -o remount,rw
+mount /var -o remount,rw
 apt update
-apt-get -y dist-upgrade
-apt-get -y autoremove
-test -f /var/run/reboot-required && echo rebooting && sudo reboot
+apt-get install -y --only-upgrade $( apt-get --just-print upgrade | awk 'tolower($4) ~ /.*security.*/ || tolower($5) ~ /.*security.*/ {print $2}    ' | sort | uniq )
+apt autoremove
+sync
+mount / -o remount,ro
+mount /var -o remount,ro

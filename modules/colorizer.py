@@ -27,10 +27,12 @@ DREV = attr('reverse')
 LREV = bg(15) + attr('reverse')
 UDL = attr('underlined')
 
+
 def main():
     print(f'{RST}{RED}RED\n{RED}{LREV}RRED{RST}\n{BRED}BRED\n{BLU}BLUE\n{CYN}CYAN\n{BCYN}BCYAN\n{YEL}YELLOW\n{BYEL}BYELLOW\n{WHT}WHITE\n{BWHT}BWHITE\n{PNK}PINK \
         \n{PUR}PURPLE\n{BRN}BROWN\n{GRN}GREEN\n{BGRN}BGREEN\n{BGN}BLUGREEN\n{ORG}ORANGE\n{SKN}SKIN\n{MAU}MAUVE\n{MGT}MAGENTA\n{BMGT}BMAGENTA \
         \n{RMY}ARMY\n{SLT}SLATE{RST}')
+
 
 if __name__ == "__main__":
     main()
