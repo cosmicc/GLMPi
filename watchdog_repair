@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 /opt/GLMPi/stled red
 /opt/GLMPi/addalarm "System Watchdog triggered"

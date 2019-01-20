@@ -1,13 +1,15 @@
 from os import uname, getenv, popen, getloadavg
-from socket import gethostname
+import netifaces as ni
 from subprocess import check_output, Popen, PIPE
 from modules.extras import float_trunc_1dec
 
+
 def is_root():
-    if getenv("SUDO_USER") == None:
+    if getenv("SUDO_USER") is None:
         return False
     else:
         return True
+
 
 def is_rpi():
     funame = uname()
@@ -16,21 +18,25 @@ def is_rpi():
     else:
         return False
 
+
 def is_zero():
     if 'Zero' in rpi_board():
         return True
     else:
         return False
 
+
 def get_ip_address():
     return ni.ifaddresses('wlan0')[ni.AF_INET][0]['addr']
+
 
 def rpi_mem():
     memory = {}
     armmem = check_output(['/usr/bin/vcgencmd', 'get_mem', 'arm'], shell=False)
     gpumem = check_output(['/usr/bin/vcgencmd', 'get_mem', 'gpu'], shell=False)
-    memory.update({'system':armmem, 'gpu':gpumem})
+    memory.update({'system': armmem, 'gpu': gpumem})
     return memory
+
 
 def rpi_board():
     try:
@@ -42,6 +48,7 @@ def rpi_board():
     else:
         return model.rstrip('\x00')
 
+
 def enable_hdmi():
     try:
         check_output(['/usr/bin/tvservice', '-p'], shell=False)
@@ -49,6 +56,7 @@ def enable_hdmi():
         return False
     else:
         return True
+
 
 def disable_hdmi():
     try:
@@ -58,6 +66,7 @@ def disable_hdmi():
     else:
         return True
 
+
 def get_load():
     a = {}
     x = getloadavg()
@@ -65,6 +74,7 @@ def get_load():
     a.update({'5min': x[1]})
     a.update({'15min': x[2]})
     return a
+
 
 def get_freemem():
     fm = Popen(['/usr/bin/free', '-h'], stdout=PIPE)
@@ -75,11 +85,12 @@ def get_freemem():
         line = str(fm.stdout.readline())
         if i == 2:
             line = line.split()
-            freemem.update({'total':line[1], 'used':line[2], 'free':line[3], 'available':line[6].strip("\\n'")})
+            freemem.update({'total': line[1], 'used': line[2], 'free': line[3], 'available': line[6].strip("\\n'")})
         if i == 3:
             line = line.split()
-            freemem.update({'swap':line[2]})
+            freemem.update({'swap': line[2]})
             return freemem
+
 
 def get_diskspace():
     ds = Popen(['/bin/df', '-h', '/'], stdout=PIPE)
@@ -90,30 +101,32 @@ def get_diskspace():
         line = str(ds.stdout.readline())
         if i == 2:
             line = line.split()
-            diskspace.update({'size':line[1], 'available':line[3], 'used':line[2], 'used_percent':line[4]})
+            diskspace.update({'size': line[1], 'available': line[3], 'used': line[2], 'used_percent': line[4]})
             return diskspace
+
 
 def rpi_info():
     rpiinfo = {}
     runame = uname()
     cores = 0
-    rpiinfo.update({'system':runame[0], 'release':runame[2], 'version':runame[3], 'machine':runame[4], 'board':rpi_board()})
+    rpiinfo.update({'system': runame[0], 'release': runame[2], 'version': runame[3], 'machine': runame[4], 'board': rpi_board()})
     cpuinfofile = open('/proc/cpuinfo')
     for line in cpuinfofile:
         line = line.split(':')
         if line[0].startswith('Serial'):
-            rpiinfo.update({'serial':line[1].strip('\n').strip()})
+            rpiinfo.update({'serial': line[1].strip('\n').strip()})
         elif line[0].startswith('Hardware'):
-            rpiinfo.update({'hardware':line[1].strip('\n').strip()})
+            rpiinfo.update({'hardware': line[1].strip('\n').strip()})
         elif line[0].startswith('processor'):
             cores += 1
         elif line[0].startswith('Revision'):
-            rpiinfo.update({'revision':line[1].strip('\n').strip()})
+            rpiinfo.update({'revision': line[1].strip('\n').strip()})
         elif line[0].startswith('model name'):
-            rpiinfo.update({'cpu_model':line[1].strip('\n').strip()})
+            rpiinfo.update({'cpu_model': line[1].strip('\n').strip()})
     cpuinfofile.close()
-    rpiinfo.update({'cores':cores})
+    rpiinfo.update({'cores': cores})
     return rpiinfo
+
 
 class Led(object):
     def __init__(self, ledtype):
@@ -130,7 +143,7 @@ class Led(object):
             self.led = 'led1'
         else:
             raise NameError('Invalid onboard LED specified')
-        #if not is_root():
+        # if not is_root():
         #    raise RuntimeError("Controlling onboard LED's requires ROOT")
         trig = open('/sys/class/leds/{}/trigger'.format(self.led), 'w')
         trig.write('none')
@@ -155,16 +168,19 @@ class Led(object):
         fla.write('heartbeat')
         fla.close()
 
+
 def cpu_temp():
     tempu = popen("vcgencmd measure_temp").readline()
-    tempu = tempu.replace("temp=","")
-    tempu = tempu.replace("'C","")
+    tempu = tempu.replace("temp=", "")
+    tempu = tempu.replace("'C", "")
     return float_trunc_1dec(float(tempu))
+
 
 def system_uptime():
     ut = check_output(['uptime', '-p'], shell=False).decode("utf-8").strip()
     ur = ut.split('up ')
     return ur[1]
+
 
 def get_release():
     y = {}
@@ -176,18 +192,21 @@ def get_release():
             y.update({p[0][:-1].decode('UTF-8'): p[1].decode('UTF-8')})
     return y
 
+
 def get_cpuspeed():
     a = check_output(['vcgencmd', 'measure_clock', 'arm'])
     a = a.split(b'=')
-    a = int(a[1].decode('UTF-8').strip())/1000000
+    a = int(a[1].decode('UTF-8').strip()) / 1000000
     return f'{int(a)}Mhz'
+
 
 def get_throttled():
     a = check_output(['vcgencmd', 'get_throttled'])
     a = a.split(b'=')
     return a[1].decode('UTF-8').strip()
 
+
 def get_swap():
     a = check_output(['cat', '/proc/swaps'])
     a = a.decode('UTF-8').split('\n')[1].split('\t')
-    return int(int(a[3])/1000),int(int(a[2])/1000)
+    return int(int(a[3]) / 1000), int(int(a[2]) / 1000)

@@ -4,7 +4,6 @@ from threads.threadqueues import strip_queue
 from configparser import ConfigParser
 from modules.extras import str2bool, End
 import RPi.GPIO as GPIO
-import threading
 import logging
 from socket import gethostname
 
@@ -20,6 +19,7 @@ motionlight = str2bool(config.get('motion', 'light'))
 host_name = gethostname()
 log = logging.getLogger(name=host_name)
 
+
 class motionPir():
     def __init__(self):
         GPIO.setmode(GPIO.BCM)
@@ -29,10 +29,13 @@ class motionPir():
         self.inmotion = False
         self.lastmotion_timestamp = 0
         GPIO.setup(self.channel, GPIO.IN)
+
     def __repr__(self):
         return f'<motionPir object on bcmpin:{self.channel} mode:{self.mode}>'
+
     def __str__(self):
         return f'MotionPIR - BCMPin:{self.channel}, Mode:{self.mode}'
+
     def getmotion(self):
         self.inmotion = bool(GPIO.input(self.channel))
         if self.inmotion:
@@ -52,7 +55,7 @@ def motionpir_thread():
                 # START MOTION ROUTINE
                 if motionlight:
                     strip_queue.put((0, 'motion', 'on'))
-                # 
+                #
                 log.debug('* Motion Detected *')
                 while motion_sensor.lastmotion_timestamp + mdelay > datetime.now().timestamp():
                     sleep(stoploopdelay)

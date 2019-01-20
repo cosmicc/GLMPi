@@ -10,7 +10,8 @@ import stat
 host_name = socket.gethostname()
 log = logging.getLogger(name=host_name)
 
-mode = mode = 0o600|stat.S_IRUSR
+mode = mode = 0o600 | stat.S_IRUSR
+
 
 class plock:
     def __init__(self):
@@ -21,7 +22,7 @@ class plock:
             exit(1)
 
         self.ppid = str(os.getpid())
-        self.progname =  os.path.basename(sys.argv[0])
+        self.progname = os.path.basename(sys.argv[0])
         self.lockfile = f'{lpath}/{self.progname}.pid'
         if not os.path.isfile(self.lockfile):
             os.mknod(self.lockfile, mode=mode)
@@ -34,7 +35,7 @@ class plock:
             except IOError:
                 return False
             except:
-                log.exception('General error trying to lock process to file {}. exiting.'.format(elf.ockfile))
+                log.exception('General error trying to lock process to file {}. exiting.'.format(self.ockfile))
                 exit(1)
             else:
                 log.debug('Process has been locked to file {} with PID [{}]'.format(self.lockfile, self.ppid))
@@ -51,14 +52,13 @@ class plock:
                 for each in range(retry):
                     time.sleep(5)
                     if aquireLock():
-                        lock_handle.write(self.ppid)
+                        self.lock_handle.write(self.ppid)
                         self.lock_handle.close()
                         atexit.register(self.unlock)
                         return True
 
         log.error('Could not obtain process lock. Exiting')
         exit(1)
-
 
     def unlock(self):
         try:

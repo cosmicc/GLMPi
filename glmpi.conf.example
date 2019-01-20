@@ -22,6 +22,10 @@ mainloopdelay = 1
 enabled = True
 # list of ip addresses or dns names of the slave glmpi's this will control
 slaves = GLM2, GLM3, GLM4, GLM5
+# hue cycle delay in seconds
+cycledelay = 10
+# loop delay for master controller thread
+loopdelay = 1
 
 [presence]
 enabled = True
