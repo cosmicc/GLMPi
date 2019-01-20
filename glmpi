@@ -296,6 +296,7 @@ def main():
         master_thread.start()
 
     hour_timer = int(datetime.now().timestamp())
+    fivemin_timer = int(datetime.now().timestamp())
     onemin_timer = int(datetime.now().timestamp())
 
     while not glmpi_process.ending:
@@ -306,6 +307,9 @@ def main():
                 check_cputemp()
                 check_sthub(sthubip)
                 check_logsize()
+            if fivemin_timer + 300 < int(datetime.now().timestamp()):
+                fivemin_timer = int(datetime.now().timestamp())
+                check_internet()
             if hour_timer + 3600 < int(datetime.now().timestamp()):
                 hour_timer = int(datetime.now().timestamp())
                 if check_internet():
