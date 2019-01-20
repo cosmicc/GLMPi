@@ -1,8 +1,7 @@
 from astral import Astral
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 import pytz
 from configparser import ConfigParser
-from datetime import time as Time
 import socket
 import logging
 
@@ -20,6 +19,7 @@ ast = Astral()
 ast.solar_depression = 'civil'
 city = ast['Detroit']
 timezone = pytz.timezone("America/Detroit")
+
 
 def calcbright(stdout=False, data=False):
     dtnow = datetime.now(timezone)
@@ -49,14 +49,14 @@ def calcbright(stdout=False, data=False):
     elif nowtime > sunrise and nowtime <= sunrise_offset:
         if not stdout and not data:
             log.debug(f'Brightness: {midbright} (midbright) - past: sunrise {sunrise} next: sunrise_offset {sunrise_offset}')
-            return medbright
+            return midbright
         day = False
-        bright = medbright
+        bright = midbright
         lastpast = 'sunrise'
         nextpast = 'sunrise_offset'
     elif nowtime > sunrise_offset and nowtime <= solarnoon_offset:
         if not stdout and not data:
-            log.debug(f'Brightness: {highbright} (highbright) - past: sunrise_offset {sunrise_offset} next: solarmoon_offset {solarmoon_offset}')
+            log.debug(f'Brightness: {highbright} (highbright) - past: sunrise_offset {sunrise_offset} next: solarmidnight_offset {solarmidnight_offset}')
             return highbright
         day = True
         bright = highbright
@@ -111,7 +111,8 @@ def calcbright(stdout=False, data=False):
         print(' ')
 
     if data:
-        return {'localdatetime': str(dtnow), 'localtime': str(nowtime), 'brightness': bright, 'daytime': day, 'lastpast': lastpast, 'nextpast': nextpast, 'sunrise': str(sunrise), 'sunrise_offset': str(sunrise_offset), 'solarnoon_offset' : str(solarnoon_offset), 'solarnoon': str(solarnoon), 'sunset': str(sunset), 'solarmidnight_offset': str(solarmidnight_offset), 'solarmidnight': str(solarmidnight)}
+        return {'localdatetime': str(dtnow), 'localtime': str(nowtime), 'brightness': bright, 'daytime': day, 'lastpast': lastpast, 'nextpast': nextpast, 'sunrise': str(sunrise), 'sunrise_offset': str(sunrise_offset), 'solarnoon_offset': str(solarnoon_offset), 'solarnoon': str(solarnoon), 'sunset': str(sunset), 'solarmidnight_offset': str(solarmidnight_offset), 'solarmidnight': str(solarmidnight)}
+
 
 if __name__ == '__main__':
     calcbright(stdout=True)
