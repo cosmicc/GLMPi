@@ -2,7 +2,7 @@ import os
 import sys
 import time
 import fcntl
-import logging
+from loguru import logging
 import atexit
 import socket
 import stat

@@ -1,7 +1,7 @@
 from flask import request, Blueprint
 from flask_restplus import Api, Resource
 from configparser import ConfigParser
-import logging
+from loguru import logging
 import socket
 import requests
 import threading

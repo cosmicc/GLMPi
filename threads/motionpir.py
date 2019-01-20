@@ -4,7 +4,7 @@ from threads.threadqueues import strip_queue
 from configparser import ConfigParser
 from modules.extras import str2bool, End
 import RPi.GPIO as GPIO
-import logging
+from loguru import logging
 from socket import gethostname
 
 config = ConfigParser()

@@ -1,6 +1,6 @@
 from configparser import ConfigParser
 from time import sleep
-import logging
+from loguru import logging
 from socket import gethostname
 from datetime import datetime
 from modules.extras import End

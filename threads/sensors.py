@@ -1,6 +1,6 @@
 from configparser import ConfigParser
 from time import sleep
-import logging
+from loguru import logging
 from socket import gethostname
 import Adafruit_DHT
 from threads.threadqueues import strip_queue

@@ -9,7 +9,7 @@ from modules.timehelper import calcbright
 from modules.extras import str2bool, c2f, get_wifi_info, End
 import modules.rpiboard as rpi
 import threading
-import logging
+from loguru import logging
 from socket import gethostname
 
 host_name = gethostname()

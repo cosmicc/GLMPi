@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 from time import sleep
 from datetime import datetime
-import logging
+from loguru import logging
 import csv
 import os
 from socket import gethostname

@@ -4,7 +4,7 @@ from threads.threadqueues import restapi_queue, strip_queue, alarm_queue
 from modules.timehelper import calcbright
 from configparser import ConfigParser
 import subprocess
-import logging
+from loguru import logging
 import socket
 
 restapi = Blueprint('api', __name__)

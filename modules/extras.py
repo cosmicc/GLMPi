@@ -1,6 +1,6 @@
 from threads.threadqueues import strip_queue, status_queue, alarm_queue
 from time import sleep
-import logging
+from loguru import logging
 import subprocess
 from socket import gethostname
 

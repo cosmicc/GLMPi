@@ -1,6 +1,6 @@
 from configparser import ConfigParser
 from time import sleep
-import logging
+from loguru import logging
 from socket import gethostname
 import subprocess
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
