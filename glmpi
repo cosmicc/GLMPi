@@ -139,7 +139,7 @@ def check_cputemp():
     elif cputemp > cputemp_warning:
         global temptimethrottle
         stled('yellow', flashes=5, flashrate='fast')
-        if temptimethrottle > datetime.now() - timedelta(hours=1):
+        if temptimethrottle < datetime.now() - timedelta(hours=1):
             temptimethrottle = datetime.now()
             log.warning(f'CPU temp warning: {cputemp}*{temp_units} > {cputemp_warning}*{temp_units}')
             alarm_queue.put(['CPU temp warning: {cputemp}*{temp_units} > {cputemp_warning}*{temp_units}'])
@@ -154,8 +154,8 @@ def check_sthub(sthubip):
         return True
     else:
         global shubtimethrottle
-        stled('red', flashes=5)
-        if inettimethrottle > datetime.now() - timedelta(hours=1):
+        stled('orange', flashes=5)
+        if inettimethrottle < datetime.now() - timedelta(hours=1):
             shubtimethrottle = datetime.now()
             log.warning('Smartthings Hub is unreachable')
             alarm_queue.put(['Internet is unreachable'])
@@ -170,14 +170,15 @@ def check_internet():
         wifiinfo = get_wifi_info()
         if wifiinfo["signal"] < sigwarndb:
             stled('yellow', flashes=5, flashrate='slow')
-            if sigtimethrottle > datetime.now() - timedelta(hours=1):
+            if sigtimethrottle < datetime.now() - timedelta(hours=1):
                 sigtimethrottle = datetime.now()
                 log.warning(f'Low Wireless signal: {wifiinfo["signal"]} dB / {sigwarndb} dB')
                 alarm_queue.put([f'Low Wireless Signal: {wifiinfo["signal"]} dB / {sigwarndb} dB'])
         return True
     else:
         global inettimethrottle
-        stled('red', flashes=5, flashrate='slow')
+        stled('orange', flashes=5, flashrate='slow')
+        log.debug('Internet is unreachable')
         if inettimethrottle > datetime.now() - timedelta(hours=1):
             inettimethrottle = datetime.now()
             log.warning('Internet is unreachable')
@@ -210,10 +211,10 @@ def gitupdatecheck():
 pl = plock()
 pl.lock()
 
-temptimethrottle = datetime.now() - timedelta(hours=1)
-inettimethrottle = datetime.now() - timedelta(hours=1)
-shubtimethrottle = datetime.now() - timedelta(hours=1)
-sigtimethrottle = datetime.now() - timedelta(hours=1)
+temptimethrottle = datetime.now() - timedelta(hours=2)
+inettimethrottle = datetime.now() - timedelta(hours=2)
+shubtimethrottle = datetime.now() - timedelta(hours=2)
+sigtimethrottle = datetime.now() - timedelta(hours=2)
 
 
 def main():
@@ -314,6 +315,7 @@ def main():
 
     End('SIGHUP received', alarm=False)
     webserver.terminate()
+    sleep(1)
     strip_thread.terminate()
 
 
