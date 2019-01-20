@@ -2,13 +2,11 @@ import os
 import sys
 import time
 import fcntl
-from loguru import logging
+from loguru import logger
 import atexit
-import socket
 import stat
 
-host_name = socket.gethostname()
-log = logging.getLogger(name=host_name)
+log = logger()
 
 mode = mode = 0o600 | stat.S_IRUSR
 
