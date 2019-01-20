@@ -11,7 +11,7 @@ log = logging.getLogger(name=host_name)
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
-cycledelay = int(config.get('master_controller', 'cyclespeed'))
+cycledelay = int(config.get('master_controller', 'cycledelay'))
 loopdelay = int(config.get('master_controller', 'loopdelay'))
 
 
