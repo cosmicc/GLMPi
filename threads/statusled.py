@@ -30,6 +30,7 @@ class statusLed():
     red = Color(0, 255, 0)
     magenta = Color(0, 255, 255)
     yellow = Color(255, 255, 0)
+    orange = Color(100, 255, 0)
     cyan = Color(255, 0, 255)
     green = Color(255, 0, 0)
     blue = Color(0, 0, 255)
@@ -54,6 +55,7 @@ class statusLed():
         self.strip.setBrightness(self.brightness)
         self.color = statusLed.black
         self.strip.show()
+        self.bthread = threading.Thread(name='status-blink')
 
     def __repr__(self):
         return f'<statusLed object on pin:{self.pin} dma:{self.dma} channel:{self.channel}>'
@@ -67,25 +69,24 @@ class statusLed():
             self.strip.setPixelColor(0, color)
             self.strip.show()
             self.color = color
-        elif flashes > 0:
-            log.debug(f'Status led color change: {i2rgb(color)}, flashes:{flashes}, flashrate:{flashrate}')
-            self.blinking = True
+        if flashes > 0:
 
-            def blinkthread(self, flashes=0, flashrate='fast'):
+            def blinkthread(self, flashes, flashrate='fast'):
 
                 def lightit(self, bright):
                     self.strip.setBrightness(bright)
                     self.strip.show()
                     sleep(.025)
+
                 log.debug(f'starting status led blink thread color: {i2rgb(self.color)}')
                 self.strip.setPixelColor(0, self.color)
                 self.strip.show()
                 for flash in range(flashes):
                     lightit(self, self.brightness)
                     if flashrate == 'fast':
-                        sleep(self.blinkfast)
+                        sleep(self.fastblink)
                     elif flashrate == 'slow':
-                        sleep(self.blinkslow)
+                        sleep(self.slowblink)
                     else:
                         log.error('Invalid flashrate specified for status led')
                     lightit(self, int(self.brightness / 2))
@@ -98,8 +99,14 @@ class statusLed():
                 self.blinking = False
                 log.debug(f'stopping status led blink thread color {i2rgb(self.color)}')
 
-            bthread = threading.Thread(name='status-blink', target=blinkthread, args=(self, flashes, flashrate))
-            bthread.start()
+            log.debug(f'Status led color change: {i2rgb(color)}, flashes:{flashes}, flashrate:{flashrate}')
+            self.blinking = True
+            try:
+                if not self.bthread.is_alive():
+                    self.bthread = threading.Thread(name='status-blink', target=blinkthread, args=(self, flashes, flashrate))
+                    self.bthread.start()
+            except:
+                log.critical('blink thread error', exec_info=True)
 
     def off(self):
         self.blinking = False
@@ -120,6 +127,8 @@ class statusLed():
                 statusLed.changecolor(self, statusLed.blue, flashes=flashes, flashrate=flashrate)
             elif color == 'cyan':
                 statusLed.changecolor(self, statusLed.cyan, flashes=flashes, flashrate=flashrate)
+            elif color == 'orange':
+                statusLed.changecolor(self, statusLed.orange, flashes=flashes, flashrate=flashrate)
             else:
                 log.error('Invalid status led color specified')
 
