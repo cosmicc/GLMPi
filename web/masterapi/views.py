@@ -42,7 +42,7 @@ def sendrequest(request, opt, val):
                 log.debug(f'Master controller send error {r.status_code} to: {sreq}')
             else:
                 log.debug(f'Master controller send successful to: {sreq}')
-    log.warning(f'HOSTS: {hosts}')
+    log.debug(f'Sending to hosts: {hosts}')
     for host in hosts:
         cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, opt, val), daemon=True)
         cont_send_thread.start()
