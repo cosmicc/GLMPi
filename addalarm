@@ -2,8 +2,7 @@
 
 from configparser import ConfigParser
 from datetime import datetime
-from socket import gethostname
-from loguru import logging
+from loguru import logger
 import csv
 import argparse
 
@@ -16,15 +15,14 @@ config.read('/etc/glmpi.conf')
 alarmfile = config.get('general', 'alarms')
 logfile = config.get('general', 'logfile')
 
-host_name = gethostname()
-log = logging.getLogger(name=host_name)
+log = logger()
 
-log_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
+#log_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
 
-log_fileh = logging.FileHandler(logfile)
-log_fileh.setLevel(logging.CRITICAL)
-log_fileh.setFormatter(log_format)
-log.addHandler(log_fileh)
+#log_fileh = logging.FileHandler(logfile)
+#log_fileh.setLevel(logging.CRITICAL)
+#log_fileh.setFormatter(log_format)
+#log.addHandler(log_fileh)
 
 
 def insert_alarm(alarm):

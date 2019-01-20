@@ -4,15 +4,13 @@ from threads.threadqueues import status_queue
 from configparser import ConfigParser
 from modules.extras import str2bool, End
 import threading
-from loguru import logging
-from socket import gethostname
+from loguru import logger
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
 loopdelay = float(config.get('status_led', 'loopdelay'))
 
-host_name = gethostname()
-log = logging.getLogger(name=host_name)
+log = logger()
 
 
 def i2rgb(RGBint, string=True):

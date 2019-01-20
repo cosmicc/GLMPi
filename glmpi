@@ -3,7 +3,7 @@
 import sys
 import threading
 import argparse
-from loguru import logging
+from loguru import logger
 from socket import gethostname
 import subprocess
 import signal
@@ -37,7 +37,7 @@ __description__ = "glmpi daemon service"
 __detaildesc__ = "Galaxy Lighting Module for PiZeroW"
 
 host_name = gethostname()
-log = logging(name=host_name)
+log = logger()
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')

@@ -4,8 +4,7 @@ from threads.threadqueues import strip_queue
 from configparser import ConfigParser
 from modules.extras import str2bool, End
 import RPi.GPIO as GPIO
-from loguru import logging
-from socket import gethostname
+from loguru import logger
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
@@ -16,8 +15,7 @@ isenabled = str2bool(config.get('motion', 'enabled'))
 warmupdelay = int(config.get('motion', 'warmupdelay'))
 motionlight = str2bool(config.get('motion', 'light'))
 
-host_name = gethostname()
-log = logging.getLogger(name=host_name)
+log = logger()
 
 
 class motionPir():

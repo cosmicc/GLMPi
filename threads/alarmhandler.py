@@ -1,15 +1,13 @@
 from configparser import ConfigParser
 from time import sleep
 from datetime import datetime
-from loguru import logging
+from loguru import logger
 import csv
 import os
-from socket import gethostname
 from threads.threadqueues import alarm_queue, restapi_queue
 from modules.extras import End
 
-host_name = gethostname()
-log = logging.getLogger(name=host_name)
+log = logger()
 
 
 class alarmHandler():
