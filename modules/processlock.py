@@ -2,11 +2,9 @@ import os
 import sys
 import time
 import fcntl
-from loguru import logger
+from loguru import logger as log
 import atexit
 import stat
-
-log = logger()
 
 mode = mode = 0o600 | stat.S_IRUSR
 

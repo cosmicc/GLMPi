@@ -9,11 +9,10 @@ from modules.timehelper import calcbright
 from modules.extras import str2bool, c2f, get_wifi_info, End
 import modules.rpiboard as rpi
 import threading
-from loguru import logger
+from loguru import logger as log
 from socket import gethostname
 
 host_name = gethostname()
-log = logger()
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')

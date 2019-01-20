@@ -1,9 +1,7 @@
 from threads.threadqueues import strip_queue, status_queue, alarm_queue
 from time import sleep
-from loguru import logger
+from loguru import logger as log
 import subprocess
-
-log = logger()
 
 
 def str2bool(v):

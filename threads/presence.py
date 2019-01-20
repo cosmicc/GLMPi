@@ -1,11 +1,9 @@
 from configparser import ConfigParser
 from time import sleep
-from loguru import logger
+from loguru import logger as log
 import subprocess
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
 from modules.extras import str2bool, End
-
-log = logger()
 
 
 class ExtConfigParser(ConfigParser):
