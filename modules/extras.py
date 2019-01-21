@@ -2,7 +2,6 @@ from threads.threadqueues import strip_queue, status_queue, alarm_queue
 from time import sleep
 from loguru import logger as log
 import subprocess
-from threads.statusled import stled
 
 
 def str2bool(v):
@@ -11,7 +10,7 @@ def str2bool(v):
 
 def secupdates():
     log.info(f'Running OS security updates')
-    stled('magenta', flashes=3, flashrate='fast')
+    status_queue('magenta')
     setrw('/')
     setrw('/var')
     cmd = 'apt update'
@@ -24,7 +23,7 @@ def secupdates():
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
     setro('/')
     setro('/var')
-    stled('last', flashes=5, flashrate='fast')
+    status_queue('last')
     log.info(f'OS security updates complete')
 
 

@@ -14,12 +14,13 @@ gitpython = "*"
 pytz = "*"
 astral = "*"
 netifaces = "*"
-pygatt = {extras = ["gatttool"],version = "*"}
+pygatt = {version = "*",extras = ["gatttool"]}
 bluepy = "*"
 adafruit-dht = "*"
 psutil = "*"
 colored = "*"
 requests = "*"
+schedule = "*"
 
 [requires]
 python_version = "3.7"

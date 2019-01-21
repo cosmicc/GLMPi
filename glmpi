@@ -268,7 +268,7 @@ def main():
     strip_thread = threading.Thread(name='ledstrip_thread', target=ledstrip_thread, daemon=True)
     strip_thread.start()
 
-    check_sthub(sthubip)
+    check_sthub()
 
     sleep(1)
 
@@ -298,10 +298,11 @@ def main():
         master_thread.start()
 
     schedule.every().hour.do(gitupdatecheck)
-    schedule.every(5).min.do(check_internet)
-    schedule.every().min.do(check_cputemp)
-    schedule.every().min.do(check_sthub)
-    schedule.every().min.do(check_logsize)
+    schedule.every(5).minutes.do(check_internet)
+    schedule.every().minute.do(check_cputemp)
+    schedule.every().minute.do(check_sthub)
+    schedule.every().minute.do(check_logsize)
+    schedule.every().day.at("04:00").do(secupdates)
 
     while not glmpi_process.ending:
         try:
