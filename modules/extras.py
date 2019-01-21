@@ -5,6 +5,10 @@ import subprocess
 from threads.statusled import stled
 
 
+def str2bool(v):
+    return str(v).lower() in ("yes", "true", "t", "1")
+
+
 def secupdates():
     log.info(f'Running OS security updates')
     stled('magenta', flashes=3, flashrate='fast')
@@ -42,10 +46,6 @@ def setrw(part):
         log.debug(f'filesystem {part} is now set to read/write')
     else:
         log.error(f'filesystem {part} failed to set to read/write')
-
-
-def str2bool(v):
-    return str(v).lower() in ("yes", "true", "t", "1")
 
 
 def float_trunc_1dec(num):
