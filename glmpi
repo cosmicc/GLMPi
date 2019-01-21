@@ -226,7 +226,7 @@ def main():
     global shubtimethrottle
 
     def checkthreads():
-        if status_thread.is_alive():
+        if not status_thread.is_alive():
             End('Status Led thread has failed')
         if not alarm_thread.is_alive():
             End('Alarm Handler thread has failed')
@@ -321,7 +321,7 @@ def main():
             webserver.terminate()
             strip_thread.terminate()
         except:
-            log.critical(f'Exception in Main Thread', exc_info=True)
+            log.exception(f'Exception in Main Thread', exc_info=True)
             End('Exception in MainThread')
 
     End('SIGHUP received', alarm=False)

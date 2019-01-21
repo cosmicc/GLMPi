@@ -23,6 +23,7 @@ def getconfig():
     return printconfig
 
 
+@log.catch()
 @api.route('/reset')
 @api.doc(params={'type': 'soft/hard'})
 class DeviceReset(Resource):
@@ -38,7 +39,7 @@ class DeviceReset(Resource):
         else:
             return 'Invalid Type', 400
 
-
+@log.catch()
 @api.route('/night')
 @api.doc(params={'night': 'on/off'})
 class DeviceNight(Resource):
@@ -56,7 +57,7 @@ class DeviceNight(Resource):
         strip_queue.put((18, 'getnight'),)
         return restapi_queue.get()
 
-
+@log.catch()
 @api.route('/away')
 @api.doc(params={'away': 'on/off'})
 class DeviceAway(Resource):
@@ -75,6 +76,7 @@ class DeviceAway(Resource):
         return restapi_queue.get()
 
 
+@log.catch()
 @api.route('/enable')
 @api.doc(params={'enable': 'on/off'})
 class DeviceEnable(Resource):
@@ -93,6 +95,7 @@ class DeviceEnable(Resource):
         return restapi_queue.get()
 
 
+@log.catch()
 @api.route('/rgbcolor')
 @api.doc(params={'red': '255', 'green': '255', 'blue': '255'})
 class RGBColor(Resource):
@@ -114,6 +117,7 @@ class RGBColor(Resource):
         return restapi_queue.get()
 
 
+@log.catch()
 @api.route('/hsvcolor')
 @api.doc(params={'hue': '359', 'saturation': '100', 'lightness': '100'})
 class HSVColor(Resource):
@@ -135,6 +139,7 @@ class HSVColor(Resource):
         return restapi_queue.get()
 
 
+@log.catch()
 @api.route('/whitetemp')
 @api.doc(params={'kelvin': '6500'})
 class Whitetemp(Resource):
@@ -147,6 +152,7 @@ class Whitetemp(Resource):
         return restapi_queue.get()
 
 
+@log.catch()
 @api.route('/mode')
 @api.doc(params={'mode': '1'})
 class Mode(Resource):
@@ -162,6 +168,7 @@ class Mode(Resource):
         return restapi_queue.get()
 
 
+@log.catch()
 @api.route('/cyclehue')
 @api.doc(params={'hue': '359'})
 class Cyclecolor(Resource):
@@ -179,6 +186,7 @@ class Cyclecolor(Resource):
         return restapi_queue.get()
 
 
+@log.catch()
 @api.route('/info')
 class Info(Resource):
     def get(self):
@@ -186,6 +194,7 @@ class Info(Resource):
         return restapi_queue.get()
 
 
+@log.catch()
 @api.route('/alarms')
 class Alarms(Resource):
     def get(self):
@@ -193,6 +202,7 @@ class Alarms(Resource):
         return restapi_queue.get()
 
 
+@log.catch()
 @api.route('/alarms/reset')
 class Alarmsreset(Resource):
     def put(self):
@@ -200,6 +210,7 @@ class Alarmsreset(Resource):
         return restapi_queue.get()
 
 
+@log.catch()
 @api.route('/config')
 @api.doc(params={'section': 'section', 'option': 'option', 'value': 'value'})
 class Config(Resource):
@@ -220,6 +231,7 @@ class Config(Resource):
             return 'INVALID SECTION'
 
 
+@log.catch()
 @api.route('/time')
 class Time(Resource):
     def get(self):

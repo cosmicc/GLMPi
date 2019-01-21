@@ -86,6 +86,6 @@ def alarms_thread():
 
             sleep(.5)
         except:
-            log.critical(f'Exception in Error Handler Thread', exc_info=True)
+            log.exception(f'Exception in Error Handler Thread', exc_info=True)
             End('Exception in Error Handler Thread')
     End('Error Handler thread loop ended prematurely')

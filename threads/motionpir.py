@@ -63,6 +63,6 @@ def motionpir_thread():
                 log.debug('* Motion Stopped *')
             sleep(loopdelay)
         except:
-            log.critical(f'Exception in Motion Detection Thread', exc_info=True)
+            log.exception(f'Exception in Motion Detection Thread', exc_info=True)
             End('Exception in Motion Detection thread')
     End('Motion Detection thread loop ended prematurely')

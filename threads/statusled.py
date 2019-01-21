@@ -102,7 +102,7 @@ class statusLed():
                     self.bthread = threading.Thread(name='status-blink', target=blinkthread, args=(self, flashes, flashrate))
                     self.bthread.start()
             except:
-                log.critical('blink thread error', exec_info=True)
+                log.exception('blink thread error', exec_info=True)
 
     def off(self):
         self.blinking = False
@@ -134,6 +134,7 @@ def stled(color, flashes=0, flashrate='fast'):
     status_queue.put({'color': color, 'flashes': flashes, 'flashrate': flashrate})
 
 
+@log.catch()
 def statusled_thread():
     log.info('Status led thread is starting')
     sled = statusLed()
@@ -144,6 +145,6 @@ def statusled_thread():
                 sled.on(ststatus['color'], int(ststatus['flashes']), ststatus['flashrate'])
             sleep(loopdelay)
         except:
-            log.critical(f'Exception in Status Led Thread', exc_info=True)
+            log.exception(f'Exception in Status Led Thread', exc_info=True)
             End('Exception in Status Led thread')
     End('Status Led thread loop ended prematurely')

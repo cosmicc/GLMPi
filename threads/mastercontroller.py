@@ -28,6 +28,6 @@ def mastercontroller_thread():
 
             sleep(loopdelay)
         except:
-            log.critical('Exception in master controller thread', exc_info=True)
+            log.exception('Exception in master controller thread', exc_info=True)
             End('Exception in master controller thread')
     End('Master contoller loop ended prematurely')

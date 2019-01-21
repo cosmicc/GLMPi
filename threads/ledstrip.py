@@ -377,7 +377,7 @@ class ledStrip():
                         break
                     sleep(rwait / 1000)
         except:
-            log.critical(f'Critical Error in rainbow cycle Thread', exc_info=True)
+            log.exception(f'Critical Error in rainbow cycle Thread', exc_info=True)
 
     def processmotion(self, cmotion):
         self.lastmotion = datetime.now()
@@ -531,6 +531,6 @@ def ledstrip_thread():
                 stripled.updatebrightness()
             sleep(loopdelay)
         except:
-            log.critical(f'Exception in Led Strip Thread', exc_info=True)
+            log.exception(f'Exception in Led Strip Thread', exc_info=True)
             End('Exception in Bluetooth Thread')
     End('Bluetooth Thread loop ended prematurely')

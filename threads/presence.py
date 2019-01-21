@@ -109,6 +109,6 @@ def pres_thread():
             btdevice.scan()
             sleep(loopdelay)
         except:
-            log.critical(f'Exception in Presence Thread', exc_info=True)
+            log.exception(f'Exception in Presence Thread', exc_info=True)
             End('Exception in Presence Thread')
     End('Presence thread loop ended prematurely')

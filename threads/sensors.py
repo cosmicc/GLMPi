@@ -58,6 +58,6 @@ def tempsensor_thread():
             tempsensor.check()
             sleep(loopdelay)
         except:
-            log.critical('Exception in temp sensor thread', exc_info=True)
+            log.exception('Exception in temp sensor thread', exc_info=True)
             End('Exception in temp sensor thread')
     End('Temp Sensor thread loop ended prematurely')

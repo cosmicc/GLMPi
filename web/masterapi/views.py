@@ -24,7 +24,7 @@ config.read(configfile)
 
 hosts = config.getlist('master_controller', 'slaves')
 
-
+@log.catch()
 def sendrequest(request, opt, val):
     def sendrequest_thread(host, request, opt, val):
         sreq = f'http://{host}:51500/api/{request}?{opt}={val}'
@@ -44,6 +44,7 @@ def sendrequest(request, opt, val):
         cont_send_thread.start()
 
 
+@log.catch()
 @api.route('/reset')
 @api.doc(params={'type': 'soft/hard'})
 class DeviceReset(Resource):
@@ -60,6 +61,7 @@ class DeviceReset(Resource):
             return 'ERROR'
 
 
+@log.catch()
 @api.route('/cyclehue')
 @api.doc(params={'hue': '359'})
 class CycleHue(Resource):

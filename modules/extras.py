@@ -22,7 +22,7 @@ def c2f(c):
 
 
 def End(why, alarm=True):
-    log.error(f'Exiting: {why}')
+    log.critical(f'Exiting: {why}')
     status_queue.put({'color': 'red', 'flashes': 1, 'flashrate': 'fast'})
     if alarm:
         alarm_queue.put([f'Critical Error: {why}'])
