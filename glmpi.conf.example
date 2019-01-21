@@ -1,6 +1,7 @@
 [general]
 gitbranch = production
 logfile = /opt/glmpi.log
+logjason = /opt/glmpilog.json
 savestate = /opt/glmpi.sav
 alarms = /opt/glmpialarms.csv
 restapi_port = 51500

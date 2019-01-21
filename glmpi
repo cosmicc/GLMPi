@@ -28,8 +28,8 @@ from modules.extras import str2bool, c2f, End, get_wifi_info
 
 __author__ = "Ian Perry"
 __copyright__ = "Copyright 2019, Galaxy Media"
-__license__ = "GPL"
-__version__ = "0.1.1"
+__license__ = "GPLv3"
+__version__ = "0.1.2"
 __maintainer__ = "Ian Perry"
 __email__ = "ianperry99@gmail.com"
 __progname__ = "glmpi"
@@ -42,6 +42,7 @@ config = ConfigParser()
 config.read('/etc/glmpi.conf')
 
 logfile = config.get('general', 'logfile')
+logjson = config.get('general', 'logjson')
 webserver_port = config.get('general', 'restapi_port')
 cputemp_warning = float(config.get('general', 'cputemp_warning'))
 cputemp_shutdown = float(config.get('general', 'cputemp_shutdown'))
@@ -70,13 +71,18 @@ elif args.info:
 else:
     loglevel = "WARNING"
 
-# console_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
-# log_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
-
 if args.console:
-    log.add(sys.stdout, format="{time} {level.icon} {thread.name} {message}", filter="glmpi", level=loglevel)
-
-log.add(logfile, rotation="1 MB", retention="30 days", compression='gz', format="{time} {level.name} {thread.name} {message}", filter="glmpi", level=loglevel)
+    log.configure(
+        handlers=[dict(sink=sys.stdout, level=loglevel, format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'),
+                  dict(sink=logfile, level="ERROR", enqueue=True, serialize=False, rotation="1 MB", retention="30 days", compression="gz"),
+                  dict(sink=logjson, level="ERROR", enqueue=True, serialize=True, rotation="100 KB", retention="1 days")],
+                  levels=[dict(name="STARTUP", no=38, icon="¤", color="<yellow>")], extra={"common_to_all": "default"}, activation=[("my_module.secret", False), ("another_library.module", True)])
+else:
+    log.configure(
+        handlers=[dict(sink=sys.stderr, level="CRITICAL", format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'),
+                  dict(sink=logfile, level="ERROR", enqueue=True, serialize=False, rotation="1 MB", retention="30 days", compression="gz"),
+                  dict(sink=logjson, level="ERROR", enqueue=True, serialize=True, rotation="100 KB", retention="1 days")],
+                  levels=[dict(name="STARTUP", no=38, icon="¤", color="<yellow>")], extra={"common_to_all": "default"}, activation=[("my_module.secret", False), ("another_library.module", True)])
 
 
 class signal_handling:
@@ -99,12 +105,12 @@ def check_storagespace():
         sleep(3)
         exit(3)
     part1 = statvfs('/')
-    part2 = statvfs('/var')
+    part2 = statvfs('/var/opt')
     part3 = statvfs('/opt')
     if part1.f_frsize * part1.f_bavail / 1024 < 51200:
         exitout('/')
     if part2.f_frsize * part2.f_bavail / 1024 < 51200:
-        exitout('/var')
+        exitout('/var/opt')
     if part3.f_frsize * part3.f_bavail / 1024 < 51200:
         exitout('/opt')
 
@@ -201,7 +207,8 @@ def gitupdatecheck():
         repo.git.clean('-xdf')
         origin.pull()
         subprocess.run('systemctl restart glmpi', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-    subprocess.run('mount /opt -o remount,ro', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+    if gitbranch == 'production':
+        subprocess.run('mount /opt -o remount,ro', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
 
 pl = plock()
@@ -234,7 +241,7 @@ def main():
         if presence_enabled and not presence_thread.is_alive():
             End('Presence thread has failed')
 
-    log.info(f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name}')
+    log.log('STARTUP', f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name} <<<')
     glmpi_process = signal_handling()
 
     log.debug('Setting process niceness to -10')

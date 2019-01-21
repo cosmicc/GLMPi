@@ -60,7 +60,7 @@ class alarmHandler():
             log.warning('Alarm reset, but no alarms file was found. creating')
             self.create_alarmfile()
 
-
+@log.catch
 def alarms_thread():
     log.info('Alarm handler thread is starting')
     alarms = alarmHandler()
