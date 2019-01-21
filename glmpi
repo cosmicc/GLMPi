@@ -1,8 +1,9 @@
 #!/usr/local/bin/python3.7m
 
+import sys
 import threading
 import argparse
-import logging
+from loguru import logger as log
 from socket import gethostname
 import subprocess
 import signal
@@ -27,8 +28,8 @@ from modules.extras import str2bool, c2f, End, get_wifi_info
 
 __author__ = "Ian Perry"
 __copyright__ = "Copyright 2019, Galaxy Media"
-__license__ = "GPL"
-__version__ = "0.1.1"
+__license__ = "GPLv3"
+__version__ = "0.1.2"
 __maintainer__ = "Ian Perry"
 __email__ = "ianperry99@gmail.com"
 __progname__ = "glmpi"
@@ -36,12 +37,12 @@ __description__ = "glmpi daemon service"
 __detaildesc__ = "Galaxy Lighting Module for PiZeroW"
 
 host_name = gethostname()
-log = logging.getLogger(name=host_name)
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
 
 logfile = config.get('general', 'logfile')
+logjson = config.get('general', 'logjson')
 webserver_port = config.get('general', 'restapi_port')
 cputemp_warning = float(config.get('general', 'cputemp_warning'))
 cputemp_shutdown = float(config.get('general', 'cputemp_shutdown'))
@@ -64,25 +65,24 @@ parser.add_argument('-i', '--info', action='store_true', help='verbose output (i
 args = parser.parse_args()
 
 if args.debug:
-    log.setLevel(logging.DEBUG)
+    loglevel = "DEBUG"
 elif args.info:
-    log.setLevel(logging.INFO)
+    loglevel = "INFO"
 else:
-    log.setLevel(logging.WARNING)
-
-console_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
-log_format = logging.Formatter('%(asctime)s.%(msecs)03d %(name)s [%(levelname)s] %(threadName)s : %(message)s', '%Y-%m-%d %H:%M:%S')
+    loglevel = "WARNING"
 
 if args.console:
-    log_console = logging.StreamHandler()
-    log_console.setLevel(logging.DEBUG)
-    log.addHandler(log_console)
-    log_console.setFormatter(console_format)
-
-log_fileh = logging.FileHandler(logfile)
-log_fileh.setLevel(logging.INFO)
-log_fileh.setFormatter(log_format)
-log.addHandler(log_fileh)
+    log.configure(
+        handlers=[dict(sink=sys.stdout, level=loglevel, format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'),
+                  dict(sink=logfile, level="ERROR", enqueue=True, serialize=False, rotation="1 MB", retention="30 days", compression="gz"),
+                  dict(sink=logjson, level="ERROR", enqueue=True, serialize=True, rotation="100 KB", retention="1 days")],
+                  levels=[dict(name="STARTUP", no=38, icon="¤", color="<yellow>")], extra={"common_to_all": "default"}, activation=[("my_module.secret", False), ("another_library.module", True)])
+else:
+    log.configure(
+        handlers=[dict(sink=sys.stderr, level="CRITICAL", format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'),
+                  dict(sink=logfile, level="ERROR", enqueue=True, serialize=False, rotation="1 MB", retention="30 days", compression="gz"),
+                  dict(sink=logjson, level="ERROR", enqueue=True, serialize=True, rotation="100 KB", retention="1 days")],
+                  levels=[dict(name="STARTUP", no=38, icon="¤", color="<yellow>")], extra={"common_to_all": "default"}, activation=[("my_module.secret", False), ("another_library.module", True)])
 
 
 class signal_handling:
@@ -105,12 +105,12 @@ def check_storagespace():
         sleep(3)
         exit(3)
     part1 = statvfs('/')
-    part2 = statvfs('/var')
+    part2 = statvfs('/var/opt')
     part3 = statvfs('/opt')
     if part1.f_frsize * part1.f_bavail / 1024 < 51200:
         exitout('/')
     if part2.f_frsize * part2.f_bavail / 1024 < 51200:
-        exitout('/var')
+        exitout('/var/opt')
     if part3.f_frsize * part3.f_bavail / 1024 < 51200:
         exitout('/opt')
 
@@ -207,7 +207,8 @@ def gitupdatecheck():
         repo.git.clean('-xdf')
         origin.pull()
         subprocess.run('systemctl restart glmpi', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-    subprocess.run('mount /opt -o remount,ro', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+    if gitbranch == 'production':
+        subprocess.run('mount /opt -o remount,ro', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
 
 pl = plock()
@@ -240,7 +241,7 @@ def main():
         if presence_enabled and not presence_thread.is_alive():
             End('Presence thread has failed')
 
-    log.info(f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name}')
+    log.log('STARTUP', f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name} <<<')
     glmpi_process = signal_handling()
 
     log.debug('Setting process niceness to -10')
@@ -296,6 +297,7 @@ def main():
         master_thread.start()
 
     hour_timer = int(datetime.now().timestamp())
+    fivemin_timer = int(datetime.now().timestamp())
     onemin_timer = int(datetime.now().timestamp())
 
     while not glmpi_process.ending:
@@ -306,6 +308,9 @@ def main():
                 check_cputemp()
                 check_sthub(sthubip)
                 check_logsize()
+            if fivemin_timer + 300 < int(datetime.now().timestamp()):
+                fivemin_timer = int(datetime.now().timestamp())
+                check_internet()
             if hour_timer + 3600 < int(datetime.now().timestamp()):
                 hour_timer = int(datetime.now().timestamp())
                 if check_internet():

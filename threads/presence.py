@@ -1,13 +1,9 @@
 from configparser import ConfigParser
 from time import sleep
-import logging
-from socket import gethostname
+from loguru import logger as log
 import subprocess
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
 from modules.extras import str2bool, End
-
-host_name = gethostname()
-log = logging.getLogger(name=host_name)
 
 
 class ExtConfigParser(ConfigParser):

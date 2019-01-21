@@ -1,15 +1,11 @@
 from configparser import ConfigParser
 from time import sleep
 from datetime import datetime
-import logging
+from loguru import logger as log
 import csv
 import os
-from socket import gethostname
 from threads.threadqueues import alarm_queue, restapi_queue
 from modules.extras import End
-
-host_name = gethostname()
-log = logging.getLogger(name=host_name)
 
 
 class alarmHandler():
@@ -64,7 +60,7 @@ class alarmHandler():
             log.warning('Alarm reset, but no alarms file was found. creating')
             self.create_alarmfile()
 
-
+@log.catch
 def alarms_thread():
     log.info('Alarm handler thread is starting')
     alarms = alarmHandler()

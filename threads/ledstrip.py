@@ -9,11 +9,10 @@ from modules.timehelper import calcbright
 from modules.extras import str2bool, c2f, get_wifi_info, End
 import modules.rpiboard as rpi
 import threading
-import logging
+from loguru import logger as log
 from socket import gethostname
 
 host_name = gethostname()
-log = logging.getLogger(name=host_name)
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
@@ -203,7 +202,7 @@ class ledStrip():
                 if currentColor[i] >= targetColor[i]:
                     increment[i] = 0
 
-        # print(f'r:{int(color[0])} g:{int(color[1])} b:{int(color[2])}')
+        # log.debug(f'r:{int(currentColor[0])} g:{int(currentColor[1])} b:{int(currentColor[2])}')
         ncolor = Color(int(currentColor[0]), int(currentColor[1]), int(currentColor[2]))
         for led in range(self.ledcount):
             self.strip.setPixelColor(led, ncolor)
@@ -330,7 +329,7 @@ class ledStrip():
         if self.mode == 3:
             if ledStrip.preprocess(self):
                 r, g, b = hsv_to_rgb(int(chue), 100, 100)
-                ledStrip.colorchange(self, Color(int(r), int(g), int(b)), sticky=False, blend=False, savestate=False)
+                ledStrip.colorchange(self, Color(int(r), int(g), int(b)), sticky=False, blend=True, savestate=False)
 
     def whitetempchange(self, kelvin):
         bluemin = 40

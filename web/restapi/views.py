@@ -4,14 +4,10 @@ from threads.threadqueues import restapi_queue, strip_queue, alarm_queue
 from modules.timehelper import calcbright
 from configparser import ConfigParser
 import subprocess
-import logging
-import socket
+from loguru import logger as log
 
 restapi = Blueprint('api', __name__)
 api = Api(restapi, title='Galaxy Lighting Module RestAPI', version='1.0', doc='/')  # doc=False
-
-host_name = socket.gethostname()
-log = logging.getLogger(name=host_name)
 
 configfile = '/etc/glmpi.conf'
 config = ConfigParser()

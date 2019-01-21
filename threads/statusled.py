@@ -4,15 +4,11 @@ from threads.threadqueues import status_queue
 from configparser import ConfigParser
 from modules.extras import str2bool, End
 import threading
-import logging
-from socket import gethostname
+from loguru import logger as log
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
 loopdelay = float(config.get('status_led', 'loopdelay'))
-
-host_name = gethostname()
-log = logging.getLogger(name=host_name)
 
 
 def i2rgb(RGBint, string=True):
@@ -64,11 +60,11 @@ class statusLed():
         return f'StatusLED - Brightness:{self.brightness}, Color:{i2rgb(self.color)}, Blinking:{self.blinking}'
 
     def changecolor(self, color, flashes, flashrate='fast'):
-        if color != self.color or (color == self.color and flashes != 0):
-            log.debug(f'Status led color change: {i2rgb(color)}, flashes:{flashes}, flashrate:{flashrate}')
-            self.strip.setPixelColor(0, color)
-            self.strip.show()
-            self.color = color
+        # if color != self.color or (color == self.color and flashes != 0):
+        log.debug(f'Status led color change: {i2rgb(color)}, flashes:{flashes}, flashrate:{flashrate}')
+        self.strip.setPixelColor(0, color)
+        self.strip.show()
+        self.color = color
         if flashes > 0:
 
             def blinkthread(self, flashes, flashrate='fast'):

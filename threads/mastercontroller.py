@@ -1,13 +1,9 @@
 from configparser import ConfigParser
 from time import sleep
-import logging
-from socket import gethostname
+from loguru import logger as log
 from datetime import datetime
 from modules.extras import End
 from web.masterapi.views import sendrequest
-
-host_name = gethostname()
-log = logging.getLogger(name=host_name)
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')

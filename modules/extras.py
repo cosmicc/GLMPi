@@ -1,11 +1,7 @@
 from threads.threadqueues import strip_queue, status_queue, alarm_queue
 from time import sleep
-import logging
+from loguru import logger as log
 import subprocess
-from socket import gethostname
-
-host_name = gethostname()
-log = logging.getLogger(name=host_name)
 
 
 def str2bool(v):
@@ -26,7 +22,7 @@ def c2f(c):
 
 
 def End(why, alarm=True):
-    log.critical(f'Exiting: {why}')
+    log.error(f'Exiting: {why}')
     status_queue.put({'color': 'red', 'flashes': 1, 'flashrate': 'fast'})
     if alarm:
         alarm_queue.put([f'Critical Error: {why}'])
