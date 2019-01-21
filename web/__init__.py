@@ -1,6 +1,7 @@
 from flask import Flask
 from configparser import ConfigParser
 from modules.extras import str2bool
+import logging
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
@@ -10,6 +11,9 @@ ismaster = str2bool(config.get('master_controller', 'enabled'))
 def create_app(config_object):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_object)
+    app.logger.disabled = True
+    log = logging.getLogger('werkzeug')
+    log.disabled = True
     register_extensions(app)
     register_blueprints(app)
     # security.init_app(app, register_blueprint=True)
