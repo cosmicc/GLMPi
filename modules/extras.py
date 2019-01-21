@@ -2,6 +2,46 @@ from threads.threadqueues import strip_queue, status_queue, alarm_queue
 from time import sleep
 from loguru import logger as log
 import subprocess
+from threads.statusled import stled
+
+
+def secupdates():
+    log.info(f'Running OS security updates')
+    stled('magenta', flashes=3, flashrate='fast')
+    setrw('/')
+    setrw('/var')
+    cmd = 'apt update'
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+    cmd = "apt-get install -y --only-upgrade $( apt-get --just-print upgrade | awk 'tolower($4) ~ /.*security.*/ || tolower($5) ~ /.*security.*/ {print $2}    ' | sort | uniq )"
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+    cmd = "apt autoremove"
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+    cmd = "sync"
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+    setro('/')
+    setro('/var')
+    stled('last', flashes=5, flashrate='fast')
+    log.info(f'OS security updates complete')
+
+
+def setro(part):
+    cmd = f'mount {part} -o remount,ro'
+    child = subprocess.Popen([cmd], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
+    streamdata = child.communicate()[0]
+    if child.returncode == 0:
+        log.debug(f'filesystem {part} is now set to read-only')
+    else:
+        log.error(f'filesystem {part} failed to set to read-only')
+
+
+def setrw(part):
+    cmd = f'mount {part} -o remount,rw'
+    child = subprocess.Popen([cmd], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
+    streamdata = child.communicate()[0]
+    if child.returncode == 0:
+        log.debug(f'filesystem {part} is now set to read/write')
+    else:
+        log.error(f'filesystem {part} failed to set to read/write')
 
 
 def str2bool(v):
