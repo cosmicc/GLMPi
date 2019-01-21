@@ -73,13 +73,13 @@ else:
 
 if args.console:
     log.configure(
-        handlers=[dict(sink=sys.stdout, level=loglevel, format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'),
+        handlers=[dict(sink=sys.stdout, level=loglevel, backtrace=True, format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'),
                   dict(sink=logfile, level="ERROR", enqueue=True, serialize=False, rotation="1 MB", retention="30 days", compression="gz"),
                   dict(sink=logjson, level="ERROR", enqueue=True, serialize=True, rotation="100 KB", retention="1 days")],
                   levels=[dict(name="STARTUP", no=38, icon="¤", color="<yellow>")], extra={"common_to_all": "default"}, activation=[("my_module.secret", False), ("another_library.module", True)])
 else:
     log.configure(
-        handlers=[dict(sink=sys.stderr, level="CRITICAL", format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'),
+        handlers=[dict(sink=sys.stderr, level="CRITICAL", backtrace=True, format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'),
                   dict(sink=logfile, level="ERROR", enqueue=True, serialize=False, rotation="1 MB", retention="30 days", compression="gz"),
                   dict(sink=logjson, level="ERROR", enqueue=True, serialize=True, rotation="100 KB", retention="1 days")],
                   levels=[dict(name="STARTUP", no=38, icon="¤", color="<yellow>")], extra={"common_to_all": "default"}, activation=[("my_module.secret", False), ("another_library.module", True)])
@@ -226,7 +226,7 @@ def main():
     global shubtimethrottle
 
     def checkthreads():
-        if not status_thread.is_alive():
+        if status_thread.is_alive():
             End('Status Led thread has failed')
         if not alarm_thread.is_alive():
             End('Alarm Handler thread has failed')
