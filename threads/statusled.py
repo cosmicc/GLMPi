@@ -50,6 +50,7 @@ class statusLed():
         self.strip.setPixelColor(0, statusLed.black)
         self.strip.setBrightness(self.brightness)
         self.color = statusLed.black
+        self.lastcolor = statusLed.black
         self.strip.show()
         self.bthread = threading.Thread(name='status-blink')
 
@@ -59,11 +60,15 @@ class statusLed():
     def __str__(self):
         return f'StatusLED - Brightness:{self.brightness}, Color:{i2rgb(self.color)}, Blinking:{self.blinking}'
 
-    def changecolor(self, color, flashes, flashrate='fast'):
-        # if color != self.color or (color == self.color and flashes != 0):
+    def changecolor(self, color, flashes, flashrate='fast', lastcolor=False):
+        if color == self.color or (color == statusLed.green and self.color == statusLed.magenta):
+            return
+        if lastcolor:
+            color = self.lastcolor
         log.debug(f'Status led color change: {i2rgb(color)}, flashes:{flashes}, flashrate:{flashrate}')
         self.strip.setPixelColor(0, color)
         self.strip.show()
+        self.lastcolor = self.color
         self.color = color
         if flashes > 0:
 
@@ -125,6 +130,8 @@ class statusLed():
                 statusLed.changecolor(self, statusLed.cyan, flashes=flashes, flashrate=flashrate)
             elif color == 'orange':
                 statusLed.changecolor(self, statusLed.orange, flashes=flashes, flashrate=flashrate)
+            elif color == 'last':
+                statusLed.changecolor(self, statusLed.black, flashes=0, flashrate=flashrate, lastcolor=True)
             else:
                 log.error('Invalid status led color specified')
 

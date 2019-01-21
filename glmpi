@@ -151,7 +151,7 @@ def check_cputemp():
 
 def check_sthub(sthubip):
     if isup_sthub(sthubip):
-        # stled('green')
+        stled('green')
         log.debug('Smartthings Hub is reachable')
         return True
     else:

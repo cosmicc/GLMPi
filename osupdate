@@ -9,3 +9,4 @@ apt autoremove
 sync
 mount / -o remount,ro
 mount /var -o remount,ro
+/opt/GLMPi/stled last
