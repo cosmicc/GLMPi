@@ -21,6 +21,8 @@ mainloopdelay = 1
 [master_controller]
 # this device is the master device controller
 enabled = True
+# ip or dns name of the master controller
+master = GLM2
 # list of ip addresses or dns names of the slave glmpi's this will control
 slaves = GLM2, GLM3, GLM4, GLM5
 # hue cycle delay in seconds
