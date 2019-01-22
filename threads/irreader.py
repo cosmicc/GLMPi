@@ -1,11 +1,12 @@
-from time import sleep
 from configparser import ConfigParser
 from modules.extras import End
 from loguru import logger as log
 import socket
+from web.masterapi.views import sendrequest
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
+master = config.get('master_controller', 'master')
 
 
 class irReader():
@@ -38,10 +39,10 @@ def irreader_thread():
             ircode = ir.listen()
             if ircode == 'KEY_POWER':
                 log.info('POWER ON recieved from IR')
-
+                sendrequest('away', 'away', 'off')
             elif ircode == 'KEY_POWER2':
                 log.info('POWER OFF recieved from IR')
-
+                sendrequest('away', 'away', 'on')
             elif ircode == 'KEY_UP':
                 log.info('BRIGHT UP recieved from IR')
 
