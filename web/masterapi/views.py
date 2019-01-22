@@ -42,7 +42,7 @@ def sendrequest(request, **kwargs):
     sreq = f'http://HOST:51500/api/{request}'
     for key, value in kwargs.items():
         sreq = sreq + f'?{key}={value}'
-        log.warning(f'URL: {sreq}')
+    log.warning(f'URL: {sreq}')
     for host in hosts:
         cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, sreq), daemon=True)
         cont_send_thread.start()
