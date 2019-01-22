@@ -39,10 +39,10 @@ def irreader_thread():
             ircode = ir.listen()
             if ircode == 'KEY_POWER':
                 log.info('POWER ON recieved from IR')
-                sendrequest('away', 'away', 'off')
+                sendrequest('away', away='off')
             elif ircode == 'KEY_POWER2':
                 log.info('POWER OFF recieved from IR')
-                sendrequest('away', 'away', 'on')
+                sendrequest('away', away='on')
             elif ircode == 'KEY_UP':
                 log.info('BRIGHT UP recieved from IR')
 
@@ -51,7 +51,7 @@ def irreader_thread():
 
             elif ircode == 'KEY_RED':
                 log.info('RED recieved from IR')
-                sendrequest('rgbcolor', 'away', 'off')
+                sendrequest('rgbcolor', red='255', green='0', blue='0')
             elif ircode == 'KEY_GREEN':
                 log.info('GREEN recieved from IR')
 
