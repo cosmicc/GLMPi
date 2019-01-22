@@ -24,13 +24,13 @@ config.read(configfile)
 
 hosts = config.getlist('master_controller', 'slaves')
 
+
 @log.catch()
-def sendrequest(request, opt, val):
-    def sendrequest_thread(host, request, opt, val):
-        sreq = f'http://{host}:51500/api/{request}?{opt}={val}'
-        log.debug(f'{sreq} - {opt} - {val}')
+def sendrequest(request, **kwargs):
+    def sendrequest_thread(host, request, sreq):
+        sreq = sreq.replace('HOST', host)
         try:
-            r = requests.put(sreq, data={opt: val})
+            r = requests.put(sreq)
         except requests.exceptions.ConnectionError:
             log.debug(f'Master controller connection failed to: {host} - {sreq}')
         else:
@@ -39,8 +39,12 @@ def sendrequest(request, opt, val):
             else:
                 log.debug(f'Master controller send successful to: {sreq}')
     log.debug(f'Sending to hosts: {hosts}')
+    sreq = f'http://HOST:51500/api/{request}'
+    for key, value in kwargs.items():
+        sreq = sreq + f'?{key}={value}'
+        log.warning(f'URL: {sreq}')
     for host in hosts:
-        cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, opt, val), daemon=True)
+        cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, sreq), daemon=True)
         cont_send_thread.start()
 
 

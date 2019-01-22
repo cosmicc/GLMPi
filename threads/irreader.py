@@ -51,7 +51,7 @@ def irreader_thread():
 
             elif ircode == 'KEY_RED':
                 log.info('RED recieved from IR')
-
+                sendrequest('rgbcolor', 'away', 'off')
             elif ircode == 'KEY_GREEN':
                 log.info('GREEN recieved from IR')
 
