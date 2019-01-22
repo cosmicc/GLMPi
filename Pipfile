@@ -21,6 +21,7 @@ psutil = "*"
 colored = "*"
 requests = "*"
 schedule = "*"
+loguru = "*"
 
 [requires]
 python_version = "3.7"
