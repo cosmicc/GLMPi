@@ -21,6 +21,7 @@ from threads.sensors import tempsensor_thread
 from threads.alarmhandler import alarms_thread
 from threads.irreader import irreader_thread
 from threads.mastercontroller import mastercontroller_thread
+from threads.netdiscover import discovery_thread
 from git import Repo
 from configparser import ConfigParser
 from datetime import datetime, timedelta
@@ -268,7 +269,9 @@ def main():
 
     gitupdatecheck()
 
-    # multiprocessing.set_start_method('spawn')
+    netdiscovery_thread = threading.Thread(name='netdiscovery_thread', target=discovery_thread, daemon=True)
+    netdiscovery_thread.start()
+
     strip_thread = threading.Thread(name='ledstrip_thread', target=ledstrip_thread, daemon=True)
     strip_thread.start()
 

@@ -1,22 +1,34 @@
+import socket
+import threading
 from time import sleep
 from datetime import datetime
 from threads.threadqueues import strip_queue
 from configparser import ConfigParser
 from modules.extras import str2bool, End
 from loguru import logger as log
+from queue import SimpleQueue
+
+discovery_queue = SimpleQueue()
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
-loopdelay = float(config.get('network_discovery', 'loopdelay'))
-discover_timeout = int(config.get('network_discovery', 'timeout'))
+
+is_master = str2bool(config.get('master_controller', 'enabled'))
+# loopdelay = float(config.get('network_discovery', 'loopdelay'))
+# discover_timeout = int(config.get('network_discovery', 'timeout'))
 
 
 class networkDiscovery():
     def __init__(self):
         self.master = None
         self.slaves = None
-
-
+        self.is_master = is_master
+        if is_master:
+            broadcast_thread = threading.Thread(name='broadcast_thread', target=networkDiscovery.master_broadcast_listen, args=(self,), daemon=True)
+            broadcast_thread.start()
+        else:
+            broadcast_thread = threading.Thread(name='broadcast_thread', target=networkDiscovery.slave_broadcast_listen, args=(self,), daemon=True)
+            broadcast_thread.start()
 
     def __repr__(self):
         return f'<motionPir object on bcmpin:{self.channel} mode:{self.mode}>'
@@ -24,11 +36,25 @@ class networkDiscovery():
     def __str__(self):
         return f'MotionPIR - BCMPin:{self.channel}, Mode:{self.mode}'
 
-    def getmotion(self):
-        self.inmotion = bool(GPIO.input(self.channel))
-        if self.inmotion:
-            self.lastmotion_timestamp = datetime.now().timestamp()
-        return self.inmotion
+    def master_broadcast_listen(self):
+        self.bsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.bsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.bsock.bind(("", 65530))
+        self.bsock.setblocking(0)
+        while True:
+            data = self.bsock.recv(1024)
+            log.info(f"Master's Broadcast Listener recieved: {data}")
+            discovery_queue.put('SLAVE', data)
+
+    def slave_broadcast_listen(self):
+        self.bsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.bsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.bsock.bind(("", 65531))
+        self.bsock.setblocking(0)
+        while True:
+            data = self.bsock.recv(1024)
+            log.info(f"Slave's Broadcast Listener recieved: {data}")
+            discovery_queue.put('MASTER', data)
 
 
 def discovery_thread():
@@ -36,22 +62,9 @@ def discovery_thread():
     discovery = networkDiscovery()
     while True:
         try:
-            if motion_sensor.getmotion():
-                # START MOTION ROUTINE
-                if motionlight:
-                    strip_queue.put((0, 'motion', 'on'))
-                #
-                log.debug('* Motion Detected *')
-                while motion_sensor.lastmotion_timestamp + mdelay > datetime.now().timestamp():
-                    sleep(stoploopdelay)
-                    motion_sensor.getmotion()
-                # STOP MOTION ROUTINE
-                if motionlight:
-                    strip_queue.put((0, 'motion', 'off'))
-                #
-                log.debug('* Motion Stopped *')
-            sleep(loopdelay)
+            print(discovery_queue.get())
+            sleep(1)
         except:
-            log.exception(f'Exception in Motion Detection Thread', exc_info=True)
-            End('Exception in Motion Detection thread')
-    End('Motion Detection thread loop ended prematurely')
+            log.exception(f'Exception in Network Discovery Thread', exc_info=True)
+            End('Exception in Network Discovery thread')
+    End('Network Discovery thread loop ended prematurely')
