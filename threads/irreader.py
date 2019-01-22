@@ -51,22 +51,22 @@ def irreader_thread():
 
             elif ircode == 'KEY_RED':
                 log.info('RED recieved from IR')
-                sendrequest('rgbcolor', red='255', green='0', blue='0')
+                sendrequest('rgbcolor', red=255, green=0, blue=0)
             elif ircode == 'KEY_GREEN':
                 log.info('GREEN recieved from IR')
-
+                sendrequest('rgbcolor', red=0, green=255, blue=0)
             elif ircode == 'KEY_BLUE':
                 log.info('BLUE recieved from IR')
-
+                sendrequest('rgbcolor', red=0, green=0, blue=255)
             elif ircode == 'KEY_W':
                 log.info('WHITE recieved from IR')
-
+                sendrequest('mode', mode=2)
             elif ircode == 'KEY_PROG1':
-                log.info('PROG1 recieved from IR')
-
+                log.info('CYCLE COLOR recieved from IR')
+                sendrequest('mode', mode=3)
             elif ircode == 'KEY_PROG2':
-                log.info('PROG2 recieved from IR')
-
+                log.info('RAINBOW recieved from IR')
+                sendrequest('mode', mode=4)
             elif ircode == 'KEY_PROG3':
                 log.info('PROG3 recieved from IR')
 
@@ -75,39 +75,40 @@ def irreader_thread():
 
             elif ircode == 'KEY_F1':
                 log.info('COLOR1 recieved from IR')
-
+                sendrequest('rgbcolor', red=255, green=127, blue=0)
             elif ircode == 'KEY_F2':
                 log.info('COLOR2 recieved from IR')
-
+                sendrequest('rgbcolor', red=63, green=255, blue=25)
             elif ircode == 'KEY_F3':
                 log.info('COLOR3 recieved from IR')
-
+                sendrequest('rgbcolor', red=0, green=84, blue=255)
             elif ircode == 'KEY_F4':
                 log.info('COLOR4 recieved from IR')
-
+                sendrequest('rgbcolor', red=255, green=63, blue=0)
             elif ircode == 'KEY_F5':
                 log.info('COLOR5 recieved from IR')
-
+                sendrequest('rgbcolor', red=0, green=255, blue=212)
             elif ircode == 'KEY_F6':
                 log.info('COLOR6 recieved from IR')
-
+                sendrequest('rgbcolor', red=42, green=0, blue=255)
             elif ircode == 'KEY_F7':
                 log.info('COLOR7 recieved from IR')
-
+                sendrequest('rgbcolor', red=255, green=38, blue=218)
             elif ircode == 'KEY_F8':
                 log.info('COLOR8 recieved from IR')
-
+                sendrequest('rgbcolor', red=0, green=255, blue=127)
             elif ircode == 'KEY_F9':
                 log.info('COLOR9 recieved from IR')
-
+                sendrequest('rgbcolor', red=127, green=0, blue=255)
             elif ircode == 'KEY_F10':
                 log.info('COLOR10 recieved from IR')
-
+                sendrequest('rgbcolor', red=255, green=233, blue=0)
             elif ircode == 'KEY_F11':
                 log.info('COLOR11 recieved from IR')
-
+                sendrequest('rgbcolor', red=0, green=100, blue=80)
             elif ircode == 'KEY_F12':
                 log.info('COLOR12 recieved from IR')
+                sendrequest('rgbcolor', red=212, green=0, blue=255)
             else:
                 log.debug(f'INVALID CODE [{ircode}] recieved from IR')
         except:

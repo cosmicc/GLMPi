@@ -40,8 +40,13 @@ def sendrequest(request, **kwargs):
                 log.debug(f'Master controller send successful to: {sreq}')
     log.debug(f'Sending to hosts: {hosts}')
     sreq = f'http://HOST:51500/api/{request}'
+    a = True
     for key, value in kwargs.items():
-        sreq = sreq + f'?{key}={value}'
+        if a:
+            sreq = sreq + f'?{key}={value}'
+        else:
+            sreq = sreq + f'&{key}={value}'
+        a = False
     log.warning(f'URL: {sreq}')
     for host in hosts:
         cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, sreq), daemon=True)

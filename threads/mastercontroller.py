@@ -24,7 +24,7 @@ def mastercontroller_thread():
                 else:
                     hue += 1
                 log.debug(f'Sending new hue {hue} to all controllers')
-                sendrequest('cyclehue', 'hue', hue)
+                sendrequest('cyclehue', hue=hue)
 
             sleep(loopdelay)
         except:
