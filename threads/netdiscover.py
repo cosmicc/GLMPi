@@ -3,28 +3,20 @@ from datetime import datetime
 from threads.threadqueues import strip_queue
 from configparser import ConfigParser
 from modules.extras import str2bool, End
-import RPi.GPIO as GPIO
 from loguru import logger as log
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
-loopdelay = float(config.get('motion', 'loopdelay'))
-mdelay = int(config.get('motion', 'stopdelay'))
-stoploopdelay = float(config.get('motion', 'stoploopdelay'))
-isenabled = str2bool(config.get('motion', 'enabled'))
-warmupdelay = int(config.get('motion', 'warmupdelay'))
-motionlight = str2bool(config.get('motion', 'light'))
+loopdelay = float(config.get('network_discovery', 'loopdelay'))
+discover_timeout = int(config.get('network_discovery', 'timeout'))
 
 
-class motionPir():
+class networkDiscovery():
     def __init__(self):
-        GPIO.setmode(GPIO.BCM)
-        self.mode = GPIO.getmode()
-        GPIO.setwarnings(True)
-        self.channel = 12
-        self.inmotion = False
-        self.lastmotion_timestamp = 0
-        GPIO.setup(self.channel, GPIO.IN)
+        self.master = None
+        self.slaves = None
+
+
 
     def __repr__(self):
         return f'<motionPir object on bcmpin:{self.channel} mode:{self.mode}>'
@@ -39,12 +31,9 @@ class motionPir():
         return self.inmotion
 
 
-def motionpir_thread():
-    log.info('Motion detection thread is starting')
-    motion_sensor = motionPir()
-    log.info(f'Waiting {warmupdelay} seconds for PIR warmup delay')
-    sleep(warmupdelay)
-    log.info('PIR warmup complete. Starting motion detection loop')
+def discovery_thread():
+    log.info('Network discovery thread is starting')
+    discovery = networkDiscovery()
     while True:
         try:
             if motion_sensor.getmotion():
