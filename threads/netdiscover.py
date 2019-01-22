@@ -24,9 +24,11 @@ class networkDiscovery():
         self.slaves = None
         self.is_master = is_master
         if is_master:
+            log.info(f'Device is MASTER, starting master broadcast listen thread')
             broadcast_thread = threading.Thread(name='broadcast_thread', target=networkDiscovery.master_broadcast_listen, args=(self,), daemon=True)
             broadcast_thread.start()
         else:
+            log.info(f'Device is SLAVE, starting master broadcast listen thread')
             broadcast_thread = threading.Thread(name='broadcast_thread', target=networkDiscovery.slave_broadcast_listen, args=(self,), daemon=True)
             broadcast_thread.start()
 
@@ -40,9 +42,9 @@ class networkDiscovery():
         self.bsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.bsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.bsock.bind(("", 65530))
-        self.bsock.setblocking(0)
+        #self.bsock.setblocking(0)
         while True:
-            data = self.bsock.recv(1024)
+            data = self.bsock.recvfrom(1024)
             log.info(f"Master's Broadcast Listener recieved: {data}")
             discovery_queue.put('SLAVE', data)
 
@@ -50,9 +52,9 @@ class networkDiscovery():
         self.bsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.bsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.bsock.bind(("", 65531))
-        self.bsock.setblocking(0)
+        #self.bsock.setblocking(0)
         while True:
-            data = self.bsock.recv(1024)
+            data = self.bsock.recvfrom(1024)
             log.info(f"Slave's Broadcast Listener recieved: {data}")
             discovery_queue.put('MASTER', data)
 
