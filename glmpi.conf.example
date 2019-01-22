@@ -28,6 +28,9 @@ cycledelay = 10
 # loop delay for master controller thread
 loopdelay = 1
 
+[irreader]
+enabled = True
+
 [presence]
 enabled = True
 # this device will be a bluetooth ble beacon
