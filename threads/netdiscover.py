@@ -1,4 +1,5 @@
 import socket
+import json
 import threading
 from time import sleep
 from datetime import datetime
@@ -14,8 +15,20 @@ config = ConfigParser()
 config.read('/etc/glmpi.conf')
 
 is_master = str2bool(config.get('master_controller', 'enabled'))
-# loopdelay = float(config.get('network_discovery', 'loopdelay'))
-# discover_timeout = int(config.get('network_discovery', 'timeout'))
+loopdelay = float(config.get('network_discovery', 'loopdelay'))
+salt = int(config.get('network_discovery', 'bcast_salt'))
+
+
+def dict_to_binary(the_dict):
+    str = json.dumps(the_dict)
+    binary = ' '.join(format(ord(letter), 'b') for letter in str)
+    return binary
+
+
+def binary_to_dict(the_binary):
+    jsn = ''.join(chr(int(x, 2)) for x in the_binary.split())
+    d = json.loads(jsn)
+    return d
 
 
 class networkDiscovery():
@@ -44,9 +57,9 @@ class networkDiscovery():
         self.bsock.bind(("", 65530))
         #self.bsock.setblocking(0)
         while True:
-            data = self.bsock.recvfrom(1024)
+            data, addr = self.bsock.recvfrom(1024)
             log.info(f"Master's Broadcast Listener recieved: {data}")
-            discovery_queue.put('SLAVE', data)
+            discovery_queue.put(binary_to_dict(data))
 
     def slave_broadcast_listen(self):
         self.bsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -54,9 +67,9 @@ class networkDiscovery():
         self.bsock.bind(("", 65531))
         #self.bsock.setblocking(0)
         while True:
-            data = self.bsock.recvfrom(1024)
+            data, addr = self.bsock.recvfrom(1024)
             log.info(f"Slave's Broadcast Listener recieved: {data}")
-            discovery_queue.put('MASTER', data)
+            discovery_queue.put(binary_to_dict(data))
 
 
 def discovery_thread():
@@ -64,8 +77,9 @@ def discovery_thread():
     discovery = networkDiscovery()
     while True:
         try:
-            print(discovery_queue.get())
-            sleep(1)
+            resp = discovery_queue.get()
+            print(type(resp))
+            print(resp)
         except:
             log.exception(f'Exception in Network Discovery Thread', exc_info=True)
             End('Exception in Network Discovery thread')
