@@ -58,7 +58,7 @@ class presenceListener():
 
     def btscan(self):
         def connect_ble_device(self, dev):
-            log.warning(f'Starting connect thread for BLE device: {dev.addr} {dev.rssi} dB')
+            log.debug(f'Starting connect thread for BLE device: {dev.addr} {dev.rssi} dB')
             try:
                 ndev = Peripheral(dev)
             except BTLEDisconnectError:
@@ -83,7 +83,7 @@ class presenceListener():
                             sendpresence(device=device_name, timestamp=dtn)
                 except:
                     log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
-            log.warning(f'Ending connect thread for BLE device: {dev.addr} {dev.rssi} dB')
+            log.debug(f'Ending connect thread for BLE device: {dev.addr} {dev.rssi} dB')
 
         try:
             bledevs = self.scanner.scan(self.scantime)
@@ -92,7 +92,7 @@ class presenceListener():
         else:
             bleconns = []
             for bledev in bledevs:
-                log.warning(f'found ble: {bledev.addr} {bledev.connectable}')
+                log.debug(f'found ble: {bledev.addr} {bledev.connectable}')
                 if bledev.connectable:
                     #connect_ble_device(self, bledev)
                     t = threading.Thread(target=connect_ble_device, args=(self,bledev,), daemon=True)
