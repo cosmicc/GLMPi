@@ -10,7 +10,7 @@ def str2bool(v):
 
 def secupdates():
     log.info(f'Running OS security updates')
-    status_queue('magenta')
+    status_queue.put('magenta')
     setrw('/')
     setrw('/var')
     cmd = 'apt update'
@@ -23,7 +23,7 @@ def secupdates():
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
     setro('/')
     setro('/var')
-    status_queue('last')
+    status_queue.put('last')
     log.info(f'OS security updates complete')
 
 

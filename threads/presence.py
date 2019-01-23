@@ -19,7 +19,7 @@ class ExtConfigParser(ConfigParser):
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
-loopdelay = int(config.get('presence', 'scandelay'))
+loopdelay = float(config.get('presence', 'scandelay'))
 ismaster = str2bool(config.get('master_controller', 'enabled'))
 
 
@@ -61,7 +61,7 @@ class presenceListener():
         except BTLEDisconnectError:
             log.debug(f'Bluetooth device disconnected')
         else:
-            for dev in devices:
+            for dev in devices:  ##### SPIN THIS OFF INTO THREADS
                 if dev.connectable:
                     try:
                         ndev = Peripheral(dev)
