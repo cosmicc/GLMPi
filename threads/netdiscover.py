@@ -60,7 +60,10 @@ def decrypt(key, string):
 
 class networkDiscovery():
     def __init__(self):
-        self.slaves = [host_name,]
+        if not is_master:
+            self.slaves = [host_name,]
+        else:
+            self.slaves = []
         self.is_master = is_master
         if self.is_master:
             self.master = host_name
