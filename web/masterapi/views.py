@@ -3,7 +3,7 @@ from flask_restplus import Api, Resource
 from configparser import ConfigParser
 from loguru import logger as log
 from threads.netdiscover import discovery
-from threads.presence import send_presence, get_presence
+from threads.presence import Presence
 import requests
 import threading
 
@@ -26,7 +26,7 @@ config.read(configfile)
 
 
 @log.catch()
-def sendrequest(request, masteronly=False, **kwargs):
+def sendrequest(request, **kwargs):
     def sendrequest_thread(host, request, sreq):
         sreq = sreq.replace('HOST', host)
         try:
@@ -39,11 +39,7 @@ def sendrequest(request, masteronly=False, **kwargs):
             else:
                 log.debug(f'Master controller send successful to: {sreq}')
     log.debug(f'Sending to hosts: {discovery.slaves}')
-    if masteronly:
-        jj = 'masterapi'
-    else:
-        jj = 'api'
-    sreq = f'http://HOST:51500/{jj}/{request}'
+    sreq = f'http://HOST:51500/api/{request}'
     a = True
     for key, value in kwargs.items():
         if a:
@@ -52,11 +48,10 @@ def sendrequest(request, masteronly=False, **kwargs):
             sreq = sreq + f'&{key}={value}'
         a = False
     log.debug(f'URL: {sreq}')
-    if masteronly:
-        if len(discovery.slaves) > 0:
-            for host in discovery.slaves:
-                cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, sreq), daemon=True)
-                cont_send_thread.start()
+    if len(discovery.slaves) > 0:
+        for host in discovery.slaves:
+            cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, sreq), daemon=True)
+            cont_send_thread.start()
     if discovery.master is not None:
         cont_sendmst_thread = threading.Thread(target=sendrequest_thread, args=(discovery.master, request, sreq), daemon=True)
         cont_sendmst_thread.start()
@@ -94,9 +89,9 @@ class CycleHue(Resource):
 class Presence_(Resource):
     def put(self):
         log.debug(f'Presence update {request.args.get("device")} timestamp {request.args.get("timestamp")}')
-        send_presence(device=request.args.get("device"), timestamp=request.args.get("timestamp"))
+        Presence.scanlist.update({'device': request.args.get("device"), 'timestamp': request.args.get("timestamp")})
         return 'SUCCESS'
 
     def get(self):
         log.debug(f'Presence update request')
-        return get_presence
+        return Presence.scanlist

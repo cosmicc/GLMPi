@@ -5,7 +5,7 @@ from loguru import logger as log
 import subprocess
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
 from modules.extras import str2bool, End
-from web.masterapi.views import sendrequest
+#from web.masterapi.views import sendrequest
 from threads.netdiscover import discovery
 
 
@@ -101,16 +101,21 @@ class presenceListener():
                     dtn = datetime.now()
                     self.scanlist.update({'device': line[1], 'timestamp': dtn})
                     if not ismaster:
-                        sendrequest('presence', masteronly=True, device=line[1], timestamp=dtn)
+                        pass
+                        sendpresence(device=line[1], timestamp=dtn)
 
-
-def send_presence(device, timestamp):
-    global Presence
-    Presence.scanlist.update({'device': device, 'timestamp': timestamp})
-
-
-def get_presence():
-    return Presence.scanlist
+def sendpresence(device, timestamp):
+        if discovery.master is not None:
+            sreq = f'http://{discovery.master}:51500/masterapi/presence?device={device}&timestamp={timestamp}'
+            try:
+                r = requests.put(sreq)
+            except requests.exceptions.ConnectionError:
+                log.debug(f'Master send connection failed to: {host} - {sreq}')
+            else:
+                if r.status_code != 200:
+                    log.debug(f'Master send error {r.status_code} to: {sreq}')
+                else:
+                    log.debug(f'Master send successful to: {sreq}')
 
 
 def pres_thread():
