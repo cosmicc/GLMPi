@@ -5,6 +5,8 @@ from loguru import logger as log
 import subprocess
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
 from modules.extras import str2bool, End
+from web.masterapi.views import sendrequest
+from threads.netdiscover import discovery
 
 
 class ExtConfigParser(ConfigParser):
@@ -80,7 +82,10 @@ class presenceListener():
                         try:
                             if device_name in self.whitelist or device_appr in self.whitelist:
                                 log.info(f'Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB')
-                                self.scanlist.update({'device': device_name, 'timestamp': datetime.now()})
+                                dtn = datetime.now()
+                                self.scanlist.update({'device': device_name, 'timestamp': dtn})
+                                if not ismaster:
+                                    sendrequest('presence', masteronly=True, device=device_name, timestamp=dtn)
                         except:
                             log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
 
@@ -93,7 +98,10 @@ class presenceListener():
             if len(line) > 2:
                 if line[1] in self.arpmacs:
                     log.info(f'Device {line[1]} SEEN ON WIFI!')
-                    self.scanlist.update({'device': line[1], 'timestamp': datetime.now()})
+                    dtn = datetime.now()
+                    self.scanlist.update({'device': line[1], 'timestamp': dtn})
+                    if not ismaster:
+                        sendrequest('presence', masteronly=True, device=line[1], timestamp=dtn)
 
 
 def pres_thread():

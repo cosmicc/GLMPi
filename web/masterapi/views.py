@@ -3,6 +3,7 @@ from flask_restplus import Api, Resource
 from configparser import ConfigParser
 from loguru import logger as log
 from threads.netdiscover import discovery
+from threads.presence import Presence
 import requests
 import threading
 
@@ -25,7 +26,7 @@ config.read(configfile)
 
 
 @log.catch()
-def sendrequest(request, **kwargs):
+def sendrequest(request, masteronly=False, **kwargs):
     def sendrequest_thread(host, request, sreq):
         sreq = sreq.replace('HOST', host)
         try:
@@ -38,7 +39,11 @@ def sendrequest(request, **kwargs):
             else:
                 log.debug(f'Master controller send successful to: {sreq}')
     log.debug(f'Sending to hosts: {discovery.slaves}')
-    sreq = f'http://HOST:51500/api/{request}'
+    if masteronly:
+        jj = 'masterapi'
+    else:
+        jj = 'api'
+    sreq = f'http://HOST:51500/{jj}/{request}'
     a = True
     for key, value in kwargs.items():
         if a:
@@ -47,10 +52,11 @@ def sendrequest(request, **kwargs):
             sreq = sreq + f'&{key}={value}'
         a = False
     log.debug(f'URL: {sreq}')
-    if len(discovery.slaves) > 0:
-        for host in discovery.slaves:
-            cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, sreq), daemon=True)
-            cont_send_thread.start()
+    if masteronly:
+        if len(discovery.slaves) > 0:
+            for host in discovery.slaves:
+                cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, sreq), daemon=True)
+                cont_send_thread.start()
     if discovery.master is not None:
         cont_sendmst_thread = threading.Thread(target=sendrequest_thread, args=(discovery.master, request, sreq), daemon=True)
         cont_sendmst_thread.start()
@@ -78,6 +84,19 @@ class DeviceReset(Resource):
 @api.doc(params={'hue': '359'})
 class CycleHue(Resource):
     def put(self):
-            log.debug('Cycle hue change received by the masterapi')
-            sendrequest('cyclehue', 'hue', request.args.get("hue"))
-            return 'SUCCESS'
+        log.debug('Cycle hue change received by the masterapi')
+        sendrequest('cyclehue', 'hue', request.args.get("hue"))
+        return 'SUCCESS'
+
+
+@log.catch()
+@api.route('/presence')
+class Presence_(Resource):
+    def put(self):
+        log.debug(f'Presence update {request.args.get("device")} timestamp {request.args.get("timestamp")}')
+        Presence.scanlist.update({'device': request.args.get("device"), 'timestamp': request.args.get("timestamp")})
+        return 'SUCCESS'
+
+    def get(self):
+        log.debug(f'Presence update request')
+        return Presence.scanlist

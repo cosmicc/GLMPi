@@ -3,7 +3,6 @@ from modules.extras import End
 from loguru import logger as log
 import socket
 from web.masterapi.views import sendrequest
-from threads.netdiscover import discovery
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
