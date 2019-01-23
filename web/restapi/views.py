@@ -39,6 +39,7 @@ class DeviceReset(Resource):
         else:
             return 'Invalid Type', 400
 
+
 @log.catch()
 @api.route('/night')
 @api.doc(params={'night': 'on/off'})

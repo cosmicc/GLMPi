@@ -4,6 +4,8 @@ logfile = /opt/glmpi.log
 logjason = /opt/glmpilog.json
 savestate = /opt/glmpi.sav
 alarms = /opt/glmpialarms.csv
+# enable /var/log/access.log for web requests
+access_log = True
 restapi_port = 51500
 # temperature units C or F
 temp_units = F
@@ -21,10 +23,6 @@ mainloopdelay = 1
 [master_controller]
 # this device is the master device controller
 enabled = True
-# ip or dns name of the master controller
-master = GLM2
-# list of ip addresses or dns names of the slave glmpi's this will control
-slaves = GLM2, GLM3, GLM4, GLM5
 # hue cycle delay in seconds
 cycledelay = 10
 # loop delay for master controller thread
