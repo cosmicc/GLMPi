@@ -84,16 +84,16 @@ class presenceListener():
                         except:
                             log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
 
-        def arpscan(self):
-            p = subprocess.Popen("arp-scan -l", stdout=subprocess.PIPE, shell=True)
-            (output, err) = p.communicate()
-            output = output.decode('UTF-8').split('\n')
-            for each in output:
-                line = (each.split('\t'))
-                if len(line) > 2:
-                    if line[1] in self.arpmacs:
-                        log.info(f'Device {line[1]} SEEN ON WIFI!')
-                        self.scanlist.update({'device': line[1], 'timestamp': datetime.now()})
+    def arpscan(self):
+        p = subprocess.Popen("arp-scan -l", stdout=subprocess.PIPE, shell=True)
+        (output, err) = p.communicate()
+        output = output.decode('UTF-8').split('\n')
+        for each in output:
+            line = (each.split('\t'))
+            if len(line) > 2:
+                if line[1] in self.arpmacs:
+                    log.info(f'Device {line[1]} SEEN ON WIFI!')
+                    self.scanlist.update({'device': line[1], 'timestamp': datetime.now()})
 
 
 def pres_thread():
