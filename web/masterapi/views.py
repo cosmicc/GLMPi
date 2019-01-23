@@ -3,7 +3,7 @@ from flask_restplus import Api, Resource
 from configparser import ConfigParser
 from loguru import logger as log
 from threads.netdiscover import discovery
-from threads.presence import Presence
+from threads.presence import send_presence, get_presence
 import requests
 import threading
 
@@ -94,9 +94,9 @@ class CycleHue(Resource):
 class Presence_(Resource):
     def put(self):
         log.debug(f'Presence update {request.args.get("device")} timestamp {request.args.get("timestamp")}')
-        Presence.scanlist.update({'device': request.args.get("device"), 'timestamp': request.args.get("timestamp")})
+        send_presence(device=request.args.get("device"), timestamp=request.args.get("timestamp"))
         return 'SUCCESS'
 
     def get(self):
         log.debug(f'Presence update request')
-        return Presence.scanlist
+        return get_presence

@@ -104,6 +104,15 @@ class presenceListener():
                         sendrequest('presence', masteronly=True, device=line[1], timestamp=dtn)
 
 
+def send_presence(device, timestamp):
+    global Presence
+    Presence.scanlist.update({'device': device, 'timestamp': timestamp})
+
+
+def get_presence():
+    return Presence.scanlist
+
+
 def pres_thread():
     global Presence
     log.info('Presence detection thread is starting')
