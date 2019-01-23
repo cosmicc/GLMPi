@@ -12,7 +12,7 @@ from web import create_app
 from modules.processlock import plock
 from modules.rpiboard import cpu_temp, Led
 from threads.threadqueues import strip_queue, alarm_queue
-from modules.wifitools import isup_internet, isup_sthub
+from modules.wifitools import isup_internet, isup_sthub, isup_master
 from threads.statusled import statusled_thread, stled
 from threads.ledstrip import ledstrip_thread
 from threads.motionpir import motionpir_thread
@@ -169,6 +169,22 @@ def check_sthub():
         return False
 
 
+def check_master():
+    if not master_enabled:
+        if isup_master(discovery.master):
+            stled('green')
+            log.debug(f'master {discovery.master} is reachable')
+            return True
+        else:
+            global shubtimethrottle
+            stled('orange', flashes=5)
+            if inettimethrottle < datetime.now() - timedelta(hours=1):
+                shubtimethrottle = datetime.now()
+                log.warning('Master {discovery.master} is unreachable')
+                alarm_queue.put(['Master {discovery.master} is unreachable'])
+            return False
+
+
 def check_internet():
     global sigtimethrottle
     if isup_internet():
@@ -313,19 +329,20 @@ def main():
     schedule.every(5).minutes.do(check_internet)
     schedule.every().minute.do(check_cputemp)
     schedule.every().minute.do(check_sthub)
+    schedule.every().minute.do(check_master)
     schedule.every().minute.do(check_logsize)
     schedule.every().day.at("04:00").do(secupdates)
 
     needmaster = False
 
-    if not discovery.is_master and discovery.master == None:
+    if not discovery.is_master and discovery.master is None:
         log.warning(f'No Master. Sending Master request every {master_req_secs} seconds')
         needmaster = True
         disjob = schedule.every(master_req_secs).seconds.do(discovery.master_request)
 
     while not glmpi_process.ending:
         try:
-            if discovery.master != None and needmaster:
+            if discovery.master is not None and needmaster:
                 log.info(f'Master {discovery.master} found. calling off search')
                 schedule.cancel_job(disjob)
                 needmaster = False

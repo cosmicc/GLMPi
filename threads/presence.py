@@ -77,6 +77,7 @@ class btListener():
                         try:
                             if device_name in self.whitelist or device_appr in self.whitelist:
                                 log.info(f'Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB')
+                                #################
                         except:
                             log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
 
@@ -96,6 +97,7 @@ class arpListener():
             if len(line) > 2:
                 if line[1] in self.arpmacs:
                     log.info(f'Device {line[1]} SEEN ON WIFI!')
+                    ###############
 
 
 def pres_thread():
