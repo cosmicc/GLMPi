@@ -14,7 +14,7 @@ gitpython = "*"
 pytz = "*"
 astral = "*"
 netifaces = "*"
-pygatt = {extras = ["gatttool"],version = "*"}
+pygatt = {version = "*",extras = ["gatttool"]}
 bluepy = "*"
 adafruit-dht = "*"
 psutil = "*"
@@ -22,7 +22,6 @@ colored = "*"
 requests = "*"
 schedule = "*"
 loguru = "*"
-simple-crypt = "*"
 
 [requires]
 python_version = "3.7"

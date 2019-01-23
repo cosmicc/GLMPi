@@ -21,7 +21,7 @@ from threads.sensors import tempsensor_thread
 from threads.alarmhandler import alarms_thread
 from threads.irreader import irreader_thread
 from threads.mastercontroller import mastercontroller_thread
-from threads.netdiscover import discovery_thread
+from threads.netdiscover import discovery_thread, discovery
 from git import Repo
 from configparser import ConfigParser
 from datetime import datetime, timedelta
@@ -59,6 +59,7 @@ sigwarndb = int(config.get('general', 'wifi_warning_db'))
 gitbranch = config.get('general', 'gitbranch')
 ir_enabled = str2bool(config.get('irreader', 'enabled'))
 master_enabled = str2bool(config.get('master_controller', 'enabled'))
+master_req_secs = int(config.get('network_discovery', 'master_req_delay'))
 
 parser = argparse.ArgumentParser(prog=__progname__)
 parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
@@ -315,8 +316,19 @@ def main():
     schedule.every().minute.do(check_logsize)
     schedule.every().day.at("04:00").do(secupdates)
 
+    needmaster = False
+
+    if not discovery.is_master and discovery.master == None:
+        log.warning(f'No Master. Sending Master request every {master_req_secs} seconds')
+        needmaster = True
+        disjob = schedule.every(master_req_secs).seconds.do(discovery.master_request)
+
     while not glmpi_process.ending:
         try:
+            if discovery.master != None and needmaster:
+                log.info(f'Master {discovery.master} found. calling off search')
+                schedule.cancel_job(disjob)
+                needmaster = False
             schedule.run_pending()
             checkthreads()
             sleep(loopdelay)

@@ -2,6 +2,7 @@ from flask import request, Blueprint
 from flask_restplus import Api, Resource
 from configparser import ConfigParser
 from loguru import logger as log
+from threads.netdiscover import discovery
 import requests
 import threading
 
@@ -22,8 +23,6 @@ configfile = '/etc/glmpi.conf'
 config = ExtConfigParser()
 config.read(configfile)
 
-hosts = config.getlist('master_controller', 'slaves')
-
 
 @log.catch()
 def sendrequest(request, **kwargs):
@@ -38,7 +37,7 @@ def sendrequest(request, **kwargs):
                 log.debug(f'Master controller send error {r.status_code} to: {sreq}')
             else:
                 log.debug(f'Master controller send successful to: {sreq}')
-    log.debug(f'Sending to hosts: {hosts}')
+    log.debug(f'Sending to hosts: {discovery.slaves}')
     sreq = f'http://HOST:51500/api/{request}'
     a = True
     for key, value in kwargs.items():
@@ -48,9 +47,11 @@ def sendrequest(request, **kwargs):
             sreq = sreq + f'&{key}={value}'
         a = False
     log.warning(f'URL: {sreq}')
-    for host in hosts:
+    for host in discovery.slaves:
         cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, sreq), daemon=True)
         cont_send_thread.start()
+    cont_sendmst_thread = threading.Thread(target=sendrequest_thread, args=(discovery.master, request, sreq), daemon=True)
+    cont_sendmst_thread.start()
 
 
 @log.catch()

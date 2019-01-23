@@ -30,6 +30,12 @@ cycledelay = 10
 # loop delay for master controller thread
 loopdelay = 1
 
+[network_discovery]
+# key to encrypt broadcast communication
+bcast_salt = 3xg6#a8rUc&52gqV
+# seconds between each master request when no master is found
+master_req_delay = 30
+
 [irreader]
 enabled = True
 
