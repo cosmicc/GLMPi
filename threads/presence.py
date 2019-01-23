@@ -3,6 +3,7 @@ from datetime import datetime
 from time import sleep
 from loguru import logger as log
 import subprocess
+import threading
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
 from modules.extras import str2bool, End
 from threads.netdiscover import discovery
@@ -27,10 +28,38 @@ class ScanDelegate(DefaultDelegate):
     def __init__(self):
         DefaultDelegate.__init__(self)
 
+    def connect_ble_device(self, dev):
+        log.debug(f'Connnecting to BLE device: {dev.addr} {dev.rssi} dB')
+        try:
+            ndev = Peripheral(dev)
+        except BTLEDisconnectError:
+            log.debug(f'Cannot connect to device: {dev.addr} {dev.rssi} dB')
+        else:
+            try:
+                device_name = ndev.getCharacteristics(uuid='00002a00-0000-1000-8000-00805f9b34fb')[0].read().decode('UTF-8')
+                device_appr = ndev.getCharacteristics(uuid='00002a01-0000-1000-8000-00805f9b34fb')[0].read().decode('UTF-8')
+            except BTLEDisconnectError:
+                log.debug(f'Cannot connect to device: {dev.addr} {dev.rssi} dB')
+            # print(f'Device Name: {device_name}')
+            # print(f'Device Appr: {device_appr}')
+            # print(f'Device Addr: {dev.addr}')
+            # print(f'Device Type: {dev.addrType}')
+            # print(f'Device Signal: {dev.rssi} dB')
+            try:
+                if device_name in self.whitelist or device_appr in self.whitelist:
+                    log.info(f'Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB')
+                    dtn = datetime.now()
+                    self.scanlist.update({'device': device_name, 'timestamp': dtn})
+                    if not ismaster:
+                        sendpresence(device=device_name, timestamp=dtn)
+            except:
+                log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
+
     def handleDiscovery(self, dev, isNewDev, isNewData):
         if isNewDev and dev.connectable:
-            pass
-            # print(f"Discovered device {dev.addr}")
+            alarm_thread = threading.Thread(name='alarm_thread', target=self.connect_ble_device, args=(dev,), daemon=True)
+            alarm_thread.start()
+            log.debug(f"Discovered BLE device {dev.addr}")
         elif isNewData:
             pass
             # print(f"Received new data from {dev.addr}")
@@ -57,36 +86,9 @@ class presenceListener():
 
     def btscan(self):
         try:
-            devices = self.scanner.scan(self.scantime)
+            self.scanner.scan(self.scantime)
         except BTLEDisconnectError:
             log.debug(f'Bluetooth device disconnected')
-        else:
-            for dev in devices:  ##### SPIN THIS OFF INTO THREADS
-                if dev.connectable:
-                    try:
-                        ndev = Peripheral(dev)
-                    except BTLEDisconnectError:
-                        log.debug(f'Cannot connect to device: {dev.addr} {dev.rssi} dB')
-                    else:
-                        try:
-                            device_name = ndev.getCharacteristics(uuid='00002a00-0000-1000-8000-00805f9b34fb')[0].read().decode('UTF-8')
-                            device_appr = ndev.getCharacteristics(uuid='00002a01-0000-1000-8000-00805f9b34fb')[0].read().decode('UTF-8')
-                        except BTLEDisconnectError:
-                            log.debug(f'Cannot connect to device: {dev.addr} {dev.rssi} dB')
-                        # print(f'Device Name: {device_name}')
-                        # print(f'Device Appr: {device_appr}')
-                        # print(f'Device Addr: {dev.addr}')
-                        # print(f'Device Type: {dev.addrType}')
-                        # print(f'Device Signal: {dev.rssi} dB')
-                        try:
-                            if device_name in self.whitelist or device_appr in self.whitelist:
-                                log.info(f'Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB')
-                                dtn = datetime.now()
-                                self.scanlist.update({'device': device_name, 'timestamp': dtn})
-                                if not ismaster:
-                                    sendpresence(device=device_name, timestamp=dtn)
-                        except:
-                            log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
 
     def arpscan(self):
         p = subprocess.Popen("arp-scan -l", stdout=subprocess.PIPE, shell=True)
