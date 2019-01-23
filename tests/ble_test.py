@@ -16,9 +16,10 @@ class ScanDelegate(DefaultDelegate):
 scanner = Scanner().withDelegate(ScanDelegate())
 
 while True:
-    devices = scanner.scan(15.0)
-
+    devices = scanner.scan(10.0)
+    print(f'Num of devices found {len(devices)}')
     for dev in devices:
+        print(f'Device found {dev.addr} {dev.connectable}')
         if dev.connectable:
                 try:
                     ndev = Peripheral(dev)
@@ -34,7 +35,7 @@ while True:
                     print(f'Device Addr: {dev.addr}')
                     print(f'Device Type: {dev.addrType}')
                     print(f'Device Signal: {dev.rssi} dB')
-
+    print('-')
 
 
 
