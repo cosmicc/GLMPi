@@ -94,3 +94,14 @@ def get_wifi_info():
         return {'ssid': ssid, 'apmac': apmac, 'channel': channel, 'signal': signal, 'signal_percent': signal_percent, 'quality': linkqual, 'bitrate': bitrate}
     else:
         return False
+
+def update_config(section, option, value):
+    config = ConfigParser()
+    config.read('/etc/glmpi.conf')
+    if not config.has_section(section):
+        return False
+    if not config.has_option(section, option):
+        return False
+    config.set(section, option, value)
+    config.write('/etc/glmpi.conf')
+    return True
