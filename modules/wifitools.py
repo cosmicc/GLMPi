@@ -1,6 +1,5 @@
 import socket
 import subprocess
-from threads.netdiscover import discovery
 
 
 def host_port(ip, port):
@@ -14,9 +13,9 @@ def host_port(ip, port):
         return True
 
 
-def isup_master():
-    if discovery.master != None:
-        if host_port(discovery.master, 51500) == True:
+def isup_master(master):
+    if master != None:
+        if host_port(host, 51500) == True:
             return True
         else:
             return False
