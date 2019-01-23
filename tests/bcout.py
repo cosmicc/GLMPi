@@ -54,7 +54,7 @@ server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 # indefinitely when trying to receive data.
 server.settimeout(0.2)
 server.bind(("", 44444))
-d = {'from': 'GLM1', 'type': 'MASTER', 'slaves': ['glm3', 'glm6', 'glm7', 'glm5', 'glm4']}
+d = {'from': 'GLM3', 'type': 'SLAVE'}
 message = encrypt(salt, dict_to_binary(d))
 #while :
 server.sendto(message, ('<broadcast>', 65530))
