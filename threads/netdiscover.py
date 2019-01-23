@@ -122,7 +122,7 @@ def discovery_thread():
                 if bcast["from"] not in discovery.slaves:
                     log.info(f'Slave device discovered: {bcast["from"]} at {bcast["addr"]}')
                     discovery.slaves.append(bcast['from'])
-                dictmsg = {'type': 'MASTER', 'from': host_name, 'slaves': self.slaves}
+                dictmsg = {'type': 'MASTER', 'from': host_name, 'slaves': discovery.slaves}
                 discovery.broadcast_send(dictmsg)
             elif bcast['type'] == 'SLAVEREQUEST' and not discovery.is_master:
                 dictmsg = {'type': 'SLAVE', 'from': host_name}

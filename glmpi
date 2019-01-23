@@ -246,7 +246,7 @@ def main():
             End('Temp Sensor thread has failed')
         if presence_enabled and not presence_thread.is_alive():
             End('Presence thread has failed')
-        if not ir_thread.is_alive():
+        if ir_enabled and not ir_thread.is_alive():
             End('IR reciever thread has failed')
 
     log.log('STARTUP', f'>>> Galaxy Lighting Module Pi daemon is starting on {host_name} <<<')

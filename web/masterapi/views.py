@@ -46,12 +46,14 @@ def sendrequest(request, **kwargs):
         else:
             sreq = sreq + f'&{key}={value}'
         a = False
-    log.warning(f'URL: {sreq}')
-    for host in discovery.slaves:
-        cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, sreq), daemon=True)
-        cont_send_thread.start()
-    cont_sendmst_thread = threading.Thread(target=sendrequest_thread, args=(discovery.master, request, sreq), daemon=True)
-    cont_sendmst_thread.start()
+    log.debug(f'URL: {sreq}')
+    if len(discovery.slaves) > 0:
+        for host in discovery.slaves:
+            cont_send_thread = threading.Thread(target=sendrequest_thread, args=(host, request, sreq), daemon=True)
+            cont_send_thread.start()
+    if discovery.master is not None:
+        cont_sendmst_thread = threading.Thread(target=sendrequest_thread, args=(discovery.master, request, sreq), daemon=True)
+        cont_sendmst_thread.start()
 
 
 @log.catch()
