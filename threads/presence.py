@@ -99,17 +99,12 @@ class presenceListener():
 def pres_thread():
     global Presence
     log.info('Presence detection thread is starting')
-    o = 0
     while True:
         try:
             if ismaster:
                 Presence.arpscan()
             Presence.btscan()
-            if o > 10:
-                print(Presence.scanlist)
-                o += 1
-            else:
-                o = 0
+            print(Presence.scanlist)
             sleep(loopdelay)
         except:
             log.exception(f'Exception in Presence Thread', exc_info=True)
