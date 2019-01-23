@@ -1,4 +1,5 @@
 from configparser import ConfigParser
+from datetime import datetime
 from time import sleep
 from loguru import logger as log
 import subprocess
@@ -34,13 +35,15 @@ class ScanDelegate(DefaultDelegate):
             # print(f"Received new data from {dev.addr}")
 
 
-class btListener():
+class presenceListener():
     def __init__(self):
         config = ExtConfigParser()
         config.read('/etc/glmpi.conf')
         self.beacon = str2bool(config.get('presence', 'bluetooth_beacon'))
         self.whitelist = config.getlist('presence', 'bluetooth_names')
         self.scantime = int(config.get('presence', 'bluetooth_scantime'))
+        self.arpmacs = config.getlist('presence', 'wifiMACs')
+        self.scanlist = {}
         log.debug(f'Initializing bluetooth interface HCI0')
         subprocess.run(['/bin/hciconfig', 'hci0', 'up'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
         if self.beacon:
@@ -51,7 +54,7 @@ class btListener():
             subprocess.run(['/bin/hciconfig', 'hci0', 'noleadv'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
         self.scanner = Scanner().withDelegate(ScanDelegate())
 
-    def scan(self):
+    def btscan(self):
         try:
             devices = self.scanner.scan(self.scantime)
         except BTLEDisconnectError:
@@ -77,40 +80,41 @@ class btListener():
                         try:
                             if device_name in self.whitelist or device_appr in self.whitelist:
                                 log.info(f'Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB')
-                                #################
+                                self.scanlist.update({'device': device_name, 'timestamp': datetime.now()})
                         except:
                             log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
 
-
-class arpListener():
-    def __init__(self):
-        config = ExtConfigParser()
-        config.read('/etc/glmpi.conf')
-        self.arpmacs = config.getlist('presence', 'wifiMACs')
-
-    def scan(self):
-        p = subprocess.Popen("arp-scan -l", stdout=subprocess.PIPE, shell=True)
-        (output, err) = p.communicate()
-        output = output.decode('UTF-8').split('\n')
-        for each in output:
-            line = (each.split('\t'))
-            if len(line) > 2:
-                if line[1] in self.arpmacs:
-                    log.info(f'Device {line[1]} SEEN ON WIFI!')
-                    ###############
+        def arpscan(self):
+            p = subprocess.Popen("arp-scan -l", stdout=subprocess.PIPE, shell=True)
+            (output, err) = p.communicate()
+            output = output.decode('UTF-8').split('\n')
+            for each in output:
+                line = (each.split('\t'))
+                if len(line) > 2:
+                    if line[1] in self.arpmacs:
+                        log.info(f'Device {line[1]} SEEN ON WIFI!')
+                        self.scanlist.update({'device': line[1], 'timestamp': datetime.now()})
 
 
 def pres_thread():
+    global Presence
     log.info('Presence detection thread is starting')
-    btdevice = btListener()
-    arpscanner = arpListener()
+    o = 0
     while True:
         try:
             if ismaster:
-                arpscanner.scan()
-            btdevice.scan()
+                Presence.arpscan()
+            Presence.btscan()
+            if o > 10:
+                print(Presence.scanlist)
+                o += 1
+            else:
+                o = 0
             sleep(loopdelay)
         except:
             log.exception(f'Exception in Presence Thread', exc_info=True)
             End('Exception in Presence Thread')
     End('Presence thread loop ended prematurely')
+
+
+Presence = presenceListener()
