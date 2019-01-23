@@ -15,7 +15,7 @@ def host_port(ip, port):
 
 def isup_master(master):
     if master != None:
-        if host_port(host, 51500) == True:
+        if host_port(master, 51500) == True:
             return True
         else:
             return False
