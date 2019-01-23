@@ -5,7 +5,6 @@ from loguru import logger as log
 import subprocess
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
 from modules.extras import str2bool, End
-#from web.masterapi.views import sendrequest
 from threads.netdiscover import discovery
 
 
@@ -85,7 +84,7 @@ class presenceListener():
                                 dtn = datetime.now()
                                 self.scanlist.update({'device': device_name, 'timestamp': dtn})
                                 if not ismaster:
-                                    sendrequest('presence', masteronly=True, device=device_name, timestamp=dtn)
+                                    sendpresence(device=device_name, timestamp=dtn)
                         except:
                             log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
 
