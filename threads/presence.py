@@ -2,6 +2,7 @@ from configparser import ConfigParser
 from datetime import datetime
 from time import sleep
 from loguru import logger as log
+import requests
 import subprocess
 import threading
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
@@ -57,6 +58,7 @@ class presenceListener():
         self.scanner = Scanner().withDelegate(ScanDelegate())
 
     def btscan(self):
+        @log.catch
         def connect_ble_device(self, dev):
             log.debug(f'Starting connect thread for BLE device: {dev.addr} {dev.rssi} dB')
             try:
@@ -79,7 +81,7 @@ class presenceListener():
                         log.info(f'Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB')
                         dtn = datetime.now()
                         self.scanlist.update({'device': device_name, 'timestamp': dtn})
-                        if not ismaster:
+                        if not discovery.is_master:
                             sendpresence(device=device_name, timestamp=dtn)
                 except:
                     log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
@@ -113,22 +115,24 @@ class presenceListener():
                     log.info(f'Device {line[1]} SEEN ON WIFI!')
                     dtn = datetime.now()
                     self.scanlist.update({'device': line[1], 'timestamp': dtn})
-                    if not ismaster:
-                        pass
+                    if not discovery.is_master:
                         sendpresence(device=line[1], timestamp=dtn)
 
+@log.catch
 def sendpresence(device, timestamp):
         if discovery.master is not None:
-            sreq = f'http://{discovery.master}:51500/masterapi/presence?device={device}&timestamp={timestamp}'
+            sreq = f'http://{discovery.master}:51500/masterapi/presence?device={device}&timestamp={timestamp.isoformat()}'
+            log.warning(sreq)
             try:
                 r = requests.put(sreq)
             except requests.exceptions.ConnectionError:
-                log.debug(f'Master send connection failed to: {host} - {sreq}')
+                log.warning(f'Master send connection failed to: {host} - {sreq}')
             else:
                 if r.status_code != 200:
-                    log.debug(f'Master send error {r.status_code} to: {sreq}')
+                    log.warning(f'Master send error {r.status_code} to: {sreq}')
                 else:
-                    log.debug(f'Master send successful to: {sreq}')
+                    log.warning(f'Master send successful to: {sreq}')
+            log.warning('4')
 
 
 def pres_thread():
@@ -139,7 +143,6 @@ def pres_thread():
             if ismaster:
                 Presence.arpscan()
             Presence.btscan()
-            print(Presence.scanlist)
             sleep(loopdelay)
         except:
             log.exception(f'Exception in Presence Thread', exc_info=True)

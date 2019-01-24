@@ -1,4 +1,5 @@
 from flask import request, Blueprint
+from datetime import datetime
 from flask_restplus import Api, Resource
 from configparser import ConfigParser
 from loguru import logger as log
@@ -65,13 +66,13 @@ class DeviceReset(Resource):
         if request.args.get("type") == 'soft':
             log.warning('SOFT RESET recieved from Masterapi, restarting glmpi service')
             sendrequest('reset', 'type', 'soft')
-            return 'SUCCESS'
+            return 'Success', 200
         elif request.args.get("type") == 'hard':
             log.warning('HARD RESET recieved from restapi, restarting pi')
             # subprocess.run(['/sbin/reboot'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
-            return 'SUCCESS'
+            return 'Success', 200
         else:
-            return 'ERROR'
+            return 'Error', 400
 
 
 @log.catch()
@@ -81,7 +82,7 @@ class CycleHue(Resource):
     def put(self):
         log.debug('Cycle hue change received by the masterapi')
         sendrequest('cyclehue', 'hue', request.args.get("hue"))
-        return 'SUCCESS'
+        return 'Success', 200
 
 
 @log.catch()
@@ -89,8 +90,8 @@ class CycleHue(Resource):
 class Presence_(Resource):
     def put(self):
         log.debug(f'Presence update {request.args.get("device")} timestamp {request.args.get("timestamp")}')
-        Presence.scanlist.update({'device': request.args.get("device"), 'timestamp': request.args.get("timestamp")})
-        return 'SUCCESS'
+        Presence.scanlist.update({'device': request.args.get("device"), 'timestamp': datetime.fromisoformat(request.args.get("timestamp"))})
+        return 'Success', 200
 
     def get(self):
         log.debug(f'Presence update request')
