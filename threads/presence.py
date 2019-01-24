@@ -126,12 +126,12 @@ def sendpresence(device, timestamp):
             try:
                 r = requests.put(sreq)
             except:
-                log.warning(f'Master send connection failed to: {host} - {sreq}')
+                log.warning(f'Master send connection failed to: {discovery.master} - {sreq}')
             else:
                 if r.status_code != 200:
-                    log.warning(f'Master send error {r.status_code} to: {sreq}')
+                    log.warning(f'Master send error {r.status_code} to {discovery.master}: {sreq}')
                 else:
-                    log.warning(f'Master send successful to: {sreq}')
+                    log.warning(f'Master send successful to {discovery.master}: {sreq}')
             log.warning('4')
 
 
