@@ -62,14 +62,15 @@ class DeviceNight(Resource):
 @api.route('/away')
 @api.doc(params={'away': 'on/off'})
 class DeviceAway(Resource):
+    @log.catch()
     def put(self):
         if request.args.get("away") == 'on' or request.args.get("away") == '1' or request.args.get("away") == 'true':
             strip_queue.put((5, 'awayon'),)
-            presence_queue('awayon')
+            presence_queue.put(('awayon'),)
             return 'Success', 200
         elif request.args.get("away") == 'off' or request.args.get("away") == '0' or request.args.get("away") == 'false':
             strip_queue.put((5, 'awayoff'),)
-            presence_queue('awayoff')
+            presence_queue.put(('awayoff'),)
             return 'Success', 200
         else:
             return 'Invalid Request', 400

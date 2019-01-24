@@ -61,6 +61,15 @@ class presenceListener():
             subprocess.run(['/bin/hciconfig', 'hci0', 'noleadv'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
         self.scanner = Scanner().withDelegate(ScanDelegate())
 
+    def checkqueue(self):
+        if not presence_queue.empty():
+            ststatus = presence_queue.get()
+            if ststatus == 'awayon':
+                self.away = True
+            elif ststatus == 'awayoff':
+                self.away = False
+
+
     def btscan(self):
         @log.catch
         def connect_ble_device(self, dev):
@@ -92,12 +101,13 @@ class presenceListener():
             log.debug(f'Ending connect thread for BLE device: {dev.addr} {dev.rssi} dB')
 
         try:
+            self.checkqueue()
             bledevs = self.scanner.scan(self.scantime)
         except BTLEDisconnectError:
             log.debug(f'Bluetooth device disconnected')
         else:
             bleconns = []
-            a = codetime('connections')
+            #a = codetime('connections')
             for bledev in bledevs:
                 log.debug(f'found ble: {bledev.addr} {bledev.connectable}')
                 if bledev.connectable:
@@ -107,8 +117,8 @@ class presenceListener():
                     t.start()
             for bleconthread in bleconns:
                 bleconthread.join()
-            a.stop(debug=True)
-
+            #a.stop(debug=True)
+            self.checkqueue()
 
     def arpscan(self):
         p = subprocess.Popen("arp-scan -l", stdout=subprocess.PIPE, shell=True)
@@ -128,7 +138,6 @@ class presenceListener():
 def sendpresence(device, timestamp):
         if discovery.master is not None:
             sreq = f'http://{discovery.master}:51500/masterapi/presence?device={device}&timestamp={timestamp.isoformat()}'
-            log.warning(sreq)
             try:
                 r = requests.put(sreq)
             except:
@@ -137,38 +146,31 @@ def sendpresence(device, timestamp):
                 if r.status_code != 200:
                     log.warning(f'Master send error {r.status_code} to {discovery.master}: {sreq}')
                 else:
-                    log.warning(f'Master send successful to {discovery.master}: {sreq}')
-            log.warning('4')
+                    log.debug(f'Master send successful to {discovery.master}: {sreq}')
 
 
 def pres_thread():
     global Presence
     log.info('Presence detection thread is starting')
     while True:
-        if not presence_queue.empty():
-            ststatus = presence_queue.get()
-            if ststatus == 'awayon':
-                Presence.away = True
-            elif ststatus == 'awayoff':
-                Presence.away = False
-
         b = codetime('total')
         try:
             if ismaster:
                 Presence.arpscan()
             Presence.btscan()
-
+            Presence.checkqueue()
             if Presence.away:
                 looptime = loopdelay_away
             else:
                 looptime = loopdelay_home
-
+            log.warning(datetime.now().timestamp() - b.starttime)
             while datetime.now().timestamp() - b.starttime < looptime:
+                Presence.checkqueue()
                 sleep(1)
         except:
             log.exception(f'Exception in Presence Thread', exc_info=True)
             End('Exception in Presence Thread')
-        b.stop(debug=True)
+        b.stop()
     End('Presence thread loop ended prematurely')
 
 
