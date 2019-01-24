@@ -1,5 +1,4 @@
-from threads.threadqueues import strip_queue, alarm_queue
-from threads.statusled import stled
+from threads.threadqueues import strip_queue, alarm_queue, status_queue
 from time import sleep
 from configparser import ConfigParser
 from loguru import logger as log
@@ -12,7 +11,7 @@ def str2bool(v):
 
 def secupdates():
     log.info(f'Running OS security updates')
-    stled('magenta')
+    status_queue.put({'color': 'magenta', 'flashes': 0, 'flashrate': 'fast'})
     setrw('/')
     setrw('/var')
     cmd = 'apt update'
@@ -25,7 +24,7 @@ def secupdates():
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
     setro('/')
     setro('/var')
-    stled('last')
+    status_queue.put({'color': 'last', 'flashes': 0, 'flashrate': 'fast'})
     log.info(f'OS security updates complete')
 
 
@@ -64,7 +63,7 @@ def c2f(c):
 
 def End(why, alarm=True):
     log.critical(f'Exiting: {why}')
-    stled('red', flashes=1, flashrate='fast')
+    status_queue.put({'color': 'red', 'flashes': 1, 'flashrate': 'fast'})
     if alarm:
         alarm_queue.put([f'Critical Error: {why}'])
     sleep(0.5)
@@ -97,8 +96,7 @@ def get_wifi_info():
     else:
         return False
 
-
-def update_config(section, option, value):
+def config_update(section, option, value):
     config = ConfigParser()
     config.read('/etc/glmpi.conf')
     if not config.has_section(section):
