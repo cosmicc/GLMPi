@@ -91,7 +91,7 @@ def calcbright(stdout=False, data=False):
             log.error(f'Error in brightness determination from time: {nowtime}')
             return 0
         else:
-            print(f'*ERROR* in brightness determination from time: {nowtime}')
+            log.warning(f'*ERROR* in brightness determination from time: {nowtime}')
 
     if stdout and not data:
         print(' ')
