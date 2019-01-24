@@ -10,7 +10,7 @@ class codetime():
         self.start_proctime = process_time()
         self.start_timeit = timer()
         self.start_perf = perf_counter()
-    def stop(self, debug):
+    def stop(self, debug=False):
         self.elapsed = timer() - self.start_timeit
         if debug:
             log.warning(f'-------------------[ {self.name} Timer Results ]---------------------')
