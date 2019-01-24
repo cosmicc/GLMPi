@@ -1,7 +1,7 @@
 from time import sleep
 from datetime import datetime
 from rpi_ws281x import Color, Adafruit_NeoPixel
-from threads.threadqueues import strip_queue, restapi_queue
+from threads.threadqueues import strip_queue, restapi_queue, presence_queue
 from configparser import ConfigParser
 from pathlib import Path
 from pickle import dump as pdump, load as pload
@@ -148,10 +148,15 @@ class ledStrip():
             self.brightness = state_dict['brightness']
             self.lastmotion = state_dict['lastmotion']
             log.debug(f'Savestate file found with data: {state_dict}')
+            if self.away:
+                presence_queue.put('awayon')
+            else:
+                presence_queue.put('awayoff')
         else:
             self.mode = 1
             self.lastmode = 0
             self.away = False
+            presence_queue.put('awayoff')
             self.on = True
             self.night = False
             self.color = Color(0, 0, 0)

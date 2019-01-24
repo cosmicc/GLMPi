@@ -1,6 +1,6 @@
 from flask import request, Blueprint
 from flask_restplus import Api, Resource
-from threads.threadqueues import restapi_queue, strip_queue, alarm_queue
+from threads.threadqueues import restapi_queue, strip_queue, alarm_queue, presence_queue
 from modules.timehelper import calcbright
 from configparser import ConfigParser
 import subprocess
@@ -65,12 +65,14 @@ class DeviceAway(Resource):
     def put(self):
         if request.args.get("away") == 'on' or request.args.get("away") == '1' or request.args.get("away") == 'true':
             strip_queue.put((5, 'awayon'),)
-            return 'SUCCESS'
+            presence_queue('awayon')
+            return 'Success', 200
         elif request.args.get("away") == 'off' or request.args.get("away") == '0' or request.args.get("away") == 'false':
             strip_queue.put((5, 'awayoff'),)
-            return 'SUCCESS'
+            presence_queue('awayoff')
+            return 'Success', 200
         else:
-            return 'INVALID REQUEST'
+            return 'Invalid Request', 400
 
     def get(self):
         strip_queue.put((18, 'getaway'),)

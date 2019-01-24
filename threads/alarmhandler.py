@@ -72,11 +72,11 @@ def alarms_thread():
                     restapi_queue.put({alarms.alarmcount: alarms.alarms})
                 elif alarmqueue[0] == 'alarmsreset':
                     alarms.reset_alarms()
-                    restapi_queue.put('SUCCESS')
+                    restapi_queue.put('Success')
                 else:
                     if len(alarms.alarms) > 0:
                         lastalarm = alarms.alarms[-1]
-                        log.warning(f'LAST ALARM: {lastalarm} - THIS ALARM: {alarmqueue[0]}')
+                        log.debug(f'LAST ALARM: {lastalarm} - THIS ALARM: {alarmqueue[0]}')
                         if lastalarm[1] != alarmqueue[0]:
                             alarms.insert_alarm(alarmqueue)
                         else:

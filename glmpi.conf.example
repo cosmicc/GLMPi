@@ -47,7 +47,8 @@ bluetooth_scantime = 15
 bluetooth_names = MyPhone, OtherPhone, OtherBLE
 # mac addresses of presence devices to look for on wifi
 wifimacs = 00:00:00:00:00:11, 00:00:00:00:00:12
-scandelay = 30
+scandelay_away = .01
+scandelay_home = 60
 
 [motion]
 enabled = True

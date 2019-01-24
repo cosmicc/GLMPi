@@ -8,6 +8,8 @@ import threading
 from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
 from modules.extras import str2bool, End
 from threads.netdiscover import discovery
+from threads.threadqueues import presence_queue
+from modules.codetime import codetime
 
 
 class ExtConfigParser(ConfigParser):
@@ -21,7 +23,8 @@ class ExtConfigParser(ConfigParser):
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
-loopdelay = float(config.get('presence', 'scandelay'))
+loopdelay_home = float(config.get('presence', 'scandelay_home'))
+loopdelay_away = float(config.get('presence', 'scandelay_away'))
 ismaster = str2bool(config.get('master_controller', 'enabled'))
 
 
@@ -42,6 +45,7 @@ class presenceListener():
     def __init__(self):
         config = ExtConfigParser()
         config.read('/etc/glmpi.conf')
+        self.away = True
         self.beacon = str2bool(config.get('presence', 'bluetooth_beacon'))
         self.whitelist = config.getlist('presence', 'bluetooth_names')
         self.scantime = int(config.get('presence', 'bluetooth_scantime'))
@@ -93,6 +97,7 @@ class presenceListener():
             log.debug(f'Bluetooth device disconnected')
         else:
             bleconns = []
+            a = codetime('connections')
             for bledev in bledevs:
                 log.debug(f'found ble: {bledev.addr} {bledev.connectable}')
                 if bledev.connectable:
@@ -102,6 +107,7 @@ class presenceListener():
                     t.start()
             for bleconthread in bleconns:
                 bleconthread.join()
+            a.stop(debug=True)
 
 
     def arpscan(self):
@@ -139,14 +145,30 @@ def pres_thread():
     global Presence
     log.info('Presence detection thread is starting')
     while True:
+        if not presence_queue.empty():
+            ststatus = presence_queue.get()
+            if ststatus == 'awayon':
+                Presence.away = True
+            elif ststatus == 'awayoff':
+                Presence.away = False
+
+        b = codetime('total')
         try:
             if ismaster:
                 Presence.arpscan()
             Presence.btscan()
-            sleep(loopdelay)
+
+            if Presence.away:
+                looptime = loopdelay_away
+            else:
+                looptime = loopdelay_home
+
+            while datetime.now().timestamp() - b.starttime < looptime:
+                sleep(1)
         except:
             log.exception(f'Exception in Presence Thread', exc_info=True)
             End('Exception in Presence Thread')
+        b.stop(debug=True)
     End('Presence thread loop ended prematurely')
 
 
