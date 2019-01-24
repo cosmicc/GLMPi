@@ -2,6 +2,7 @@ from flask import request, Blueprint
 from flask_restplus import Api, Resource
 from threads.threadqueues import restapi_queue, strip_queue, alarm_queue, presence_queue
 from modules.timehelper import calcbright
+from modules.extras import config_update
 from configparser import ConfigParser
 import subprocess
 from loguru import logger as log
@@ -50,13 +51,14 @@ class DeviceNight(Resource):
             return 'Success', 200
         elif request.args.get("night") == 'off' or request.args.get("night") == '0' or request.args.get("night") == 'false':
             strip_queue.put((5, 'nightoff'),)
-            return 'SUCCESS'
+            return 'Success', 200
         else:
-            return 'ERROR'
+            return 'Error', 400
 
     def get(self):
         strip_queue.put((18, 'getnight'),)
         return restapi_queue.get()
+
 
 @log.catch()
 @api.route('/away')
@@ -87,12 +89,12 @@ class DeviceEnable(Resource):
     def put(self):
         if request.args.get("enable") == 'on' or request.args.get("enable") == '1' or request.args.get("enable") == 'true':
             strip_queue.put((5, 'enable'),)
-            return 'SUCCESS'
+            return 'Success', 200
         elif request.args.get("enable") == 'off' or request.args.get("enable") == '0' or request.args.get("enable") == 'false':
             strip_queue.put((5, 'disable'),)
-            return 'SUCCESS'
+            return 'Success', 200
         else:
-            return 'ERROR'
+            return 'Error', 400
 
     def get(self):
         strip_queue.put((18, 'getenable'),)
@@ -106,15 +108,15 @@ class RGBColor(Resource):
     def put(self):
         try:
             if int(request.args.get("red")) < 0 or int(request.args.get("red")) > 255:
-                return 'INVALID RED VALUE'
+                return 'Invalid Red Value', 400
             if int(request.args.get("green")) < 0 or int(request.args.get("green")) > 255:
-                return 'INVALID GREEN VALUE'
+                return 'Invalid Green Value', 400
             if int(request.args.get("blue")) < 0 or int(request.args.get("blue")) > 255:
-                return 'INVALID BLUE VALUE'
+                return 'Invalid Blue Value', 400
             strip_queue.put((15, 'rgbcolor', request.args.get("red"), request.args.get("green"), request.args.get("blue")),)
         except:
-            return 'ERROR'
-        return 'SUCCESS'
+            return 'Error', 400
+        return 'Success', 200
 
     def get(self):
         strip_queue.put((18, 'getrgb'),)
@@ -128,15 +130,15 @@ class HSVColor(Resource):
     def put(self):
         try:
             if int(request.args.get("hue")) < 0 or int(request.args.get("hue")) > 359:
-                return 'INVALID HUE VALUE'
+                return 'Invalid Hue Value', 400
             if int(request.args.get("saturation")) < 0 or int(request.args.get("saturation")) > 100:
-                return 'INVALID GREEN VALUE'
+                return 'Invalid Saturation Value', 400
             if int(request.args.get("lightness")) < 0 or int(request.args.get("lightness")) > 100:
-                return 'INVALID LIGHTNESS VALUE'
+                return 'Invalid Lightness Value', 400
             strip_queue.put((15, 'hsvcolor', request.args.get("hue"), request.args.get("saturation"), request.args.get("lightness")),)
         except:
-            return 'ERROR'
-        return 'SUCCESS'
+            return 'Error', 400
+        return 'Success', 200
 
     def get(self):
         strip_queue.put((18, 'gethsv'),)
@@ -149,7 +151,7 @@ class HSVColor(Resource):
 class Whitetemp(Resource):
     def put(self):
         strip_queue.put((15, 'whitetemp', request.args.get("kelvin")),)
-        return 200
+        return 'Success', 200
 
     def get(self):
         strip_queue.put((18, 'getwhitetemp'),)
@@ -163,9 +165,9 @@ class Mode(Resource):
     def put(self):
         if int(request.args.get("mode")) > 0 and int(request.args.get("mode")) < 10:
             strip_queue.put((15, 'mode', request.args.get("mode")),)
-            return 200
+            return 'Success', 200
         else:
-            return 400
+            return 'Invalid Mode', 400
 
     def get(self):
         strip_queue.put((18, 'getmode'),)
@@ -178,12 +180,12 @@ class Mode(Resource):
 class Cyclecolor(Resource):
     def put(self):
         if request.args.get("hue") is None:
-            return 400
+            return 'Invalid Hue Value', 400
         if int(request.args.get("hue")) >= 0 and int(request.args.get("hue")) < 360:
             strip_queue.put((10, 'cyclehue', request.args.get("hue")),)
-            return 200
+            return 'Success', 200
         else:
-            return 400
+            return'Invalid Hue Value', 400
 
     def get(self):
         strip_queue.put((18, 'getcyclehue'),)
@@ -224,15 +226,13 @@ class Config(Resource):
     def put(self):
         if config.has_section(request.args.get("section")):
             if config.has_option(request.args.get("section"), request.args.get("option")):
-                log.info(f'Received config setting change: [{request.args.get("section")}] {request.args.get("option")} = {request.args.get("value")}')
-                config.set(request.args.get("section"), request.args.get("option"), request.args.get("value"))
-                with open(configfile, 'w') as config_file:
-                    config.write(config_file)
-                return 'SUCCESS'
+                log.debug(f'Received config setting change: [{request.args.get("section")}] {request.args.get("option")} = {request.args.get("value")}')
+                config_update(request.args.get("section"), request.args.get("option"), request.args.get("value"))
+                return 'Success', 200
             else:
-                return 'INVALID OPTION'
+                return 'Invalid Option', 400
         else:
-            return 'INVALID SECTION'
+            return 'Invalid Section', 400
 
 
 @log.catch()

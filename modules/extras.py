@@ -1,6 +1,7 @@
 from threads.threadqueues import strip_queue, alarm_queue
 from threads.statusled import stled
 from time import sleep
+from configparser import ConfigParser
 from loguru import logger as log
 import subprocess
 
@@ -63,7 +64,7 @@ def c2f(c):
 
 def End(why, alarm=True):
     log.critical(f'Exiting: {why}')
-    stled('red', flashes=1, flashrate=fast)
+    stled('red', flashes=1, flashrate='fast')
     if alarm:
         alarm_queue.put([f'Critical Error: {why}'])
     sleep(0.5)
@@ -96,13 +97,18 @@ def get_wifi_info():
     else:
         return False
 
+
 def update_config(section, option, value):
     config = ConfigParser()
     config.read('/etc/glmpi.conf')
     if not config.has_section(section):
+        log.error(f'Config update failed, Invalid Section {section}')
         return False
     if not config.has_option(section, option):
+        log.error(f'Config update failed, Invalid Option {option} in {section}')
         return False
     config.set(section, option, value)
-    config.write('/etc/glmpi.conf')
+    with open('/etc/glmpi.conf', 'w') as config_file:
+        config.write(config_file)
+    log.info(f'Config update successful. Section: {section} Option: {option}')
     return True
