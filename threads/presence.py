@@ -47,10 +47,15 @@ class presenceListener():
         config.read('/etc/glmpi.conf')
         self.away = True
         self.beacon = str2bool(config.get('presence', 'bluetooth_beacon'))
-        self.whitelist = config.getlist('presence', 'bluetooth_names')
         self.scantime = int(config.get('presence', 'bluetooth_scantime'))
-        self.arpmacs = config.getlist('presence', 'wifiMACs')
-        self.scanlist = {}
+        self.people = {}
+        self.people_count = 0
+        k = 1
+        while config.has_option('presence', f'person_{k}'):
+            self.peaople_count += 1
+            person = config.getlist('presence', f'person_{k}')
+            self.people.update({'name': person[0], {'blename': person[1], 'wifimac': person[2], 'timestamp': 0}})
+            k += 1
         log.debug(f'Initializing bluetooth interface HCI0')
         subprocess.run(['/bin/hciconfig', 'hci0', 'up'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
         if self.beacon:
@@ -90,10 +95,11 @@ class presenceListener():
                 # print(f'Device Type: {dev.addrType}')
                 # print(f'Device Signal: {dev.rssi} dB')
                 try:
-                    if device_name in self.whitelist or device_appr in self.whitelist:
-                        log.info(f'Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB')
-                        dtn = datetime.now()
-                        self.scanlist.update({'device': device_name, 'timestamp': dtn})
+                    for person in self.people:
+                        if device_name == person['blename'] or device_appr == person['blename']:
+                            log.info(f"""{person["name"]}'s Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB""")
+                            dtn = datetime.now()
+                            self.people.update({'name': person['name'], {'blename': person['blename'], 'wifimac': person['wifimac'], 'timestamp': dtn})
                         if not discovery.is_master:
                             sendpresence(device=device_name, timestamp=dtn)
                 except:
