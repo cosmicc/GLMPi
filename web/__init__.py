@@ -1,8 +1,9 @@
-from flask import Flask
-from configparser import ConfigParser
-from modules.extras import str2bool
-from loguru import logger as log
 import logging
+from configparser import ConfigParser
+
+from flask import Flask
+from loguru import logger as log
+from modules.extras import str2bool
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')

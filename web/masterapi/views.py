@@ -1,12 +1,13 @@
-from flask import request, Blueprint
-from datetime import datetime
-from flask_restplus import Api, Resource
+import threading
 from configparser import ConfigParser
+from datetime import datetime
+
+import requests
+from flask import Blueprint, request
+from flask_restplus import Api, Resource
 from loguru import logger as log
 from threads.netdiscover import discovery
 from threads.presence import Presence
-import requests
-import threading
 
 masterapi = Blueprint('masterapi', __name__)
 api = Api(masterapi, title='Galaxy Lighting Module Master Controller RestAPI', version='1.0', doc='/')  # doc=False
@@ -90,9 +91,9 @@ class CycleHue(Resource):
 class Presence_(Resource):
     def put(self):
         log.debug(f'Presence update {request.args.get("device")} timestamp {request.args.get("timestamp")}')
-        Presence.scanlist.update({'device': request.args.get("device"), 'timestamp': datetime.fromisoformat(request.args.get("timestamp"))})
+        Presence.people.update({'device': request.args.get("device"), 'timestamp': datetime.fromisoformat(request.args.get("timestamp"))})
         return 'Success', 200
 
     def get(self):
         log.debug(f'Presence update request')
-        return Presence.scanlist
+        return Presence.people

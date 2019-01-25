@@ -1,11 +1,13 @@
-from flask import request, Blueprint
-from flask_restplus import Api, Resource
-from threads.threadqueues import restapi_queue, strip_queue, alarm_queue, presence_queue
-from modules.timehelper import calcbright
-from modules.extras import config_update
-from configparser import ConfigParser
 import subprocess
+from configparser import ConfigParser
+
+from flask import Blueprint, request
+from flask_restplus import Api, Resource
 from loguru import logger as log
+from modules.extras import config_update
+from modules.timehelper import calcbright
+from threads.threadqueues import (alarm_queue, presence_queue, restapi_queue,
+                                  strip_queue)
 
 restapi = Blueprint('api', __name__)
 api = Api(restapi, title='Galaxy Lighting Module RestAPI', version='1.0', doc='/')  # doc=False
