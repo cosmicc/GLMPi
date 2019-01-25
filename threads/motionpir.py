@@ -1,10 +1,11 @@
-from time import sleep
-from datetime import datetime
-from threads.threadqueues import strip_queue
 from configparser import ConfigParser
-from modules.extras import str2bool, End
+from datetime import datetime
+from time import sleep
+
 import RPi.GPIO as GPIO
 from loguru import logger as log
+from modules.extras import End, str2bool
+from threads.threadqueues import strip_queue
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')

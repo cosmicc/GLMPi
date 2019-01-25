@@ -1,7 +1,9 @@
-from time import process_time, perf_counter
 from datetime import datetime
+from time import perf_counter, process_time
 from timeit import default_timer as timer
+
 from loguru import logger as log
+
 
 class codetime():
     def __init__(self, name):
@@ -10,6 +12,7 @@ class codetime():
         self.start_proctime = process_time()
         self.start_timeit = timer()
         self.start_perf = perf_counter()
+
     def stop(self, debug=False):
         self.elapsed = timer() - self.start_timeit
         if debug:

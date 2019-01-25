@@ -1,9 +1,10 @@
-from astral import Astral
-from datetime import datetime, timedelta
-import pytz
 from configparser import ConfigParser
-import socket
-import logging
+from datetime import datetime, timedelta
+
+import pytz
+from astral import Astral
+
+from loguru import logger as log
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
@@ -12,8 +13,6 @@ midbright = int(config.get('led_strip', 'medbright'))
 highbright = int(config.get('led_strip', 'highbright'))
 fullbright = int(config.get('led_strip', 'fullbright'))
 
-host_name = socket.gethostname()
-log = logging.getLogger(name=host_name)
 
 ast = Astral()
 ast.solar_depression = 'civil'

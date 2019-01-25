@@ -1,10 +1,11 @@
+import atexit
+import fcntl
 import os
+import stat
 import sys
 import time
-import fcntl
+
 from loguru import logger as log
-import atexit
-import stat
 
 mode = mode = 0o600 | stat.S_IRUSR
 

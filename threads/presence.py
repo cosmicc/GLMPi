@@ -1,15 +1,16 @@
+import subprocess
+import threading
 from configparser import ConfigParser
 from datetime import datetime
 from time import sleep
-from loguru import logger as log
+
 import requests
-import subprocess
-import threading
-from bluepy.btle import Scanner, DefaultDelegate, Peripheral, BTLEDisconnectError
-from modules.extras import str2bool, End
+from bluepy.btle import BTLEDisconnectError, DefaultDelegate, Peripheral, Scanner
+from loguru import logger as log
+from modules.codetime import codetime
+from modules.extras import End, str2bool
 from threads.netdiscover import discovery
 from threads.threadqueues import presence_queue
-from modules.codetime import codetime
 
 
 class ExtConfigParser(ConfigParser):

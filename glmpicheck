@@ -1,12 +1,13 @@
 #!/usr/local/bin/python3.7m
 
-import psutil
-import os
 import argparse
+import os
 from datetime import datetime
+
+import psutil
+from modules.colorizer import BCYN, BGRN, BRED, BWHT, BYEL, RST
 from modules.extras import float_trunc_1dec
 from modules.rpiboard import is_root
-from modules.colorizer import BGRN, BRED, BYEL, RST, BCYN, BWHT
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-u', '--userlevel', action='store_true', help='Non-Root user level check')

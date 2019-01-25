@@ -1,7 +1,8 @@
-from configparser import ConfigParser
-from modules.extras import End
-from loguru import logger as log
 import socket
+from configparser import ConfigParser
+
+from loguru import logger as log
+from modules.extras import End
 from web.masterapi.views import sendrequest
 
 config = ConfigParser()

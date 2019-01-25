@@ -1,17 +1,19 @@
-from time import sleep
-from datetime import datetime
-from rpi_ws281x import Color, Adafruit_NeoPixel
-from threads.threadqueues import strip_queue, restapi_queue, presence_queue
-from configparser import ConfigParser
-from pathlib import Path
-from pickle import dump as pdump, load as pload
-from modules.timehelper import calcbright
-from modules.extras import str2bool, c2f, get_wifi_info, End
-from threads.netdiscover import discovery
-import modules.rpiboard as rpi
 import threading
-from loguru import logger as log
+from configparser import ConfigParser
+from datetime import datetime
+from pathlib import Path
+from pickle import dump as pdump
+from pickle import load as pload
 from socket import gethostname
+from time import sleep
+
+import modules.rpiboard as rpi
+from loguru import logger as log
+from modules.extras import End, c2f, get_wifi_info, str2bool
+from modules.timehelper import calcbright
+from rpi_ws281x import Adafruit_NeoPixel, Color
+from threads.netdiscover import discovery
+from threads.threadqueues import presence_queue, restapi_queue, strip_queue
 
 host_name = gethostname()
 

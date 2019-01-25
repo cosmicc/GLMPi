@@ -1,15 +1,14 @@
-import socket
 import base64
 import json
+import socket
 import threading
-from time import sleep
-from random import uniform as rnd
-from datetime import datetime
-from threads.threadqueues import strip_queue
 from configparser import ConfigParser
-from modules.extras import str2bool, End
-from loguru import logger as log
 from queue import SimpleQueue
+from random import uniform as rnd
+from time import sleep
+
+from loguru import logger as log
+from modules.extras import End, str2bool
 
 discovery_queue = SimpleQueue()
 
@@ -21,7 +20,6 @@ config.read('/etc/glmpi.conf')
 is_master = str2bool(config.get('master_controller', 'enabled'))
 salt = config.get('network_discovery', 'bcast_salt')
 
-#discovery = None
 
 def dict_to_binary(the_dict):
     str = json.dumps(the_dict)
@@ -61,7 +59,7 @@ def decrypt(key, string):
 class networkDiscovery():
     def __init__(self):
         if not is_master:
-            self.slaves = [host_name,]
+            self.slaves = [host_name, ]
         else:
             self.slaves = []
         self.is_master = is_master
@@ -111,7 +109,6 @@ class networkDiscovery():
 
 def discovery_thread():
     log.info('Network discovery thread is starting')
-    #discovery = networkDiscovery()
     if is_master:
         log.info('Sending out slave request broadcast')
         discovery.slave_request()
@@ -151,5 +148,6 @@ def discovery_thread():
             log.exception(f'Exception in Network Discovery Thread', exc_info=True)
             End('Exception in Network Discovery thread')
     End('Network Discovery thread loop ended prematurely')
+
 
 discovery = networkDiscovery()

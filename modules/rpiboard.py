@@ -1,6 +1,7 @@
-from os import uname, getenv, popen, getloadavg
+from os import getenv, getloadavg, popen, uname
+from subprocess import PIPE, Popen, check_output
+
 import netifaces as ni
-from subprocess import check_output, Popen, PIPE
 from modules.extras import float_trunc_1dec
 
 

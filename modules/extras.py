@@ -1,8 +1,9 @@
-from threads.threadqueues import strip_queue, alarm_queue, status_queue
-from time import sleep
-from configparser import ConfigParser
-from loguru import logger as log
 import subprocess
+from configparser import ConfigParser
+from time import sleep
+
+from loguru import logger as log
+from threads.threadqueues import alarm_queue, status_queue, strip_queue
 
 
 def str2bool(v):

@@ -1,11 +1,12 @@
-from configparser import ConfigParser
-from time import sleep
-from datetime import datetime
-from loguru import logger as log
 import csv
 import os
-from threads.threadqueues import alarm_queue, restapi_queue
+from configparser import ConfigParser
+from datetime import datetime
+from time import sleep
+
+from loguru import logger as log
 from modules.extras import End
+from threads.threadqueues import alarm_queue, restapi_queue
 
 
 class alarmHandler():

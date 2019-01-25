@@ -1,9 +1,10 @@
 from configparser import ConfigParser
 from time import sleep
-from loguru import logger as log
+
 import Adafruit_DHT
+from loguru import logger as log
+from modules.extras import End, c2f, float_trunc_1dec
 from threads.threadqueues import strip_queue
-from modules.extras import c2f, float_trunc_1dec, End
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')

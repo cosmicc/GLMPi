@@ -1,10 +1,11 @@
-from time import sleep
-from rpi_ws281x import Color, Adafruit_NeoPixel
-from threads.threadqueues import status_queue
-from configparser import ConfigParser
-from modules.extras import str2bool, End
 import threading
+from configparser import ConfigParser
+from time import sleep
+
 from loguru import logger as log
+from modules.extras import End, str2bool
+from rpi_ws281x import Adafruit_NeoPixel, Color
+from threads.threadqueues import status_queue
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
