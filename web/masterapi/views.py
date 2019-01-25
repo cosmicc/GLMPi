@@ -90,8 +90,8 @@ class CycleHue(Resource):
 @api.route('/presence')
 class Presence_(Resource):
     def put(self):
-        log.debug(f'Presence update {request.args.get("device")} timestamp {request.args.get("timestamp")}')
-        Presence.people.update({'device': request.args.get("device"), 'timestamp': datetime.fromisoformat(request.args.get("timestamp"))})
+        log.debug(f'Presence update {request.args.get("name")} timestamp {request.args.get("timestamp")}')
+        Presence.people.update({request.args.get("name"): {'blename': request.args.get("blename"), 'wifimac': request.args.get("wifimac"), 'timestamp':  request.args.get("timestamp")}})
         return 'Success', 200
 
     def get(self):

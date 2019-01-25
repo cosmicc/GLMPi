@@ -5,6 +5,7 @@ from datetime import datetime
 from time import sleep
 
 import requests
+from ast import literal_eval
 from bluepy.btle import BTLEDisconnectError, DefaultDelegate, Peripheral, Scanner
 from loguru import logger as log
 from modules.codetime import codetime
@@ -52,9 +53,9 @@ class presenceListener():
         self.people = {}
         self.people_count = 0
         k = 1
-        while config.has_option('presence', f'person_{k}'):
+        while config.has_option('master_controller', f'presence_{k}'):
             self.people_count += 1
-            person = config.getlist('presence', f'person_{k}')
+            person = config.getlist('master_controller', f'presence_{k}')
             log.warning(f'adding person: {person[0]} {person}')
             self.people.update({person[0]: {'blename': person[1], 'wifimac': person[2], 'timestamp': 0}})
             k += 1
@@ -99,11 +100,10 @@ class presenceListener():
                     for person, info in self.people.items():
                         if device_name == info['blename'] or device_appr == info['blename']:
                             log.info(f"""{person}'s Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB""")
-                            dtn = datetime.now()
+                            dtn = datetime.now().isoformat()
                             self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn}})
-                        if not discovery.is_master:
-                            pass
-                            # sendpresence(device=device_name, timestamp=dtn)
+                            if not ismaster:
+                                sendpresence(person, info['blename'],  info['wifimac'], dtn)
                 except:
                     log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
             log.debug(f'Ending connect thread for BLE device: {dev.addr} {dev.rssi} dB')
@@ -136,16 +136,18 @@ class presenceListener():
             line = (each.split('\t'))
             if len(line) > 2:
                 for person, info in self.people.items():
-                    if line[1] == imfo['wifimac']:
+                    if line[1] == info['wifimac']:
                         log.info(f"""{person}'s Device {info["wifimac"]} ON WIFI!""")
-                        dtn = datetime.now()
+                        dtn = datetime.now().isoformat()
                         self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn}})
+                        if not ismaster:
+                            sendpresence(person,  info['blename'], info['wifimac'], dtn)
 
 
 @log.catch
-def sendpresence(device, timestamp):
+def sendpresence(name, blename, wifimac, timestamp):
         if discovery.master is not None:
-            sreq = f'http://{discovery.master}:51500/masterapi/presence?device={device}&timestamp={timestamp.isoformat()}'
+            sreq = f'http://{discovery.master}:51500/masterapi/presence?name={name}&blename={blename}&wifimac={wifimac}&timestamp={timestamp}'
             try:
                 r = requests.put(sreq)
             except:
@@ -155,6 +157,22 @@ def sendpresence(device, timestamp):
                     log.warning(f'Master send error {r.status_code} to {discovery.master}: {sreq}')
                 else:
                     log.debug(f'Master send successful to {discovery.master}: {sreq}')
+
+
+@log.catch
+def request_master_presence():
+        if discovery.master is not None:
+            sreq = f'http://{discovery.master}:51500/masterapi/presence'
+            try:
+                r = requests.get(sreq)
+            except:
+                log.warning(f'Master send connection failed to: {discovery.master} - {sreq}')
+            else:
+                if r.status_code != 200:
+                    log.warning(f'Master send error {r.status_code} to {discovery.master}: {sreq}')
+                else:
+                    log.debug(f'Master send successful to {discovery.master}: {sreq}')
+                    return literal_eval(r.text)
 
 
 def pres_thread():
@@ -175,6 +193,8 @@ def pres_thread():
             while datetime.now().timestamp() - b.starttime < looptime:
                 Presence.checkqueue()
                 sleep(1)
+            if not Presence.people and not ismaster:
+                Presence.people = request_master_presence()
         except:
             log.exception(f'Exception in Presence Thread', exc_info=True)
             End('Exception in Presence Thread')
