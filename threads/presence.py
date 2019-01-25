@@ -52,9 +52,10 @@ class presenceListener():
         self.people_count = 0
         k = 1
         while config.has_option('presence', f'person_{k}'):
-            self.peaople_count += 1
+            self.people_count += 1
             person = config.getlist('presence', f'person_{k}')
-            self.people.update({'name': person[0], 'imfo': {'blename': person[1], 'wifimac': person[2], 'timestamp': 0}})
+            log.warning(f'adding person: {person[0]} {person}')
+            self.people.update({person[0]: {'blename': person[1], 'wifimac': person[2], 'timestamp': 0}})
             k += 1
         log.debug(f'Initializing bluetooth interface HCI0')
         subprocess.run(['/bin/hciconfig', 'hci0', 'up'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
@@ -94,13 +95,14 @@ class presenceListener():
                 # print(f'Device Type: {dev.addrType}')
                 # print(f'Device Signal: {dev.rssi} dB')
                 try:
-                    for person in self.people:
-                        if device_name == person['blename'] or device_appr == person['blename']:
-                            log.info(f"""{person["name"]}'s Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB""")
+                    for person, info in self.people.items():
+                        if device_name == info['blename'] or device_appr == info['blename']:
+                            log.info(f"""{person}'s Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB""")
                             dtn = datetime.now()
-                            self.people.update({'name': person['name'], 'info': {'blename': person['blename'], 'wifimac': person['wifimac'], 'timestamp': dtn}})
+                            self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn}})
                         if not discovery.is_master:
-                            sendpresence(device=device_name, timestamp=dtn)
+                            pass
+                            # sendpresence(device=device_name, timestamp=dtn)
                 except:
                     log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
             log.debug(f'Ending connect thread for BLE device: {dev.addr} {dev.rssi} dB')
@@ -132,11 +134,11 @@ class presenceListener():
         for each in output:
             line = (each.split('\t'))
             if len(line) > 2:
-                for person in self.people:
-                    if line[1] == person['wifimac']:
-                        log.info(f"""{person["name"]}'s Device {person["wifimac"]} ON WIFI!""")
+                for person, info in self.people.items():
+                    if line[1] == imfo['wifimac']:
+                        log.info(f"""{person}'s Device {info["wifimac"]} ON WIFI!""")
                         dtn = datetime.now()
-                        self.people.update({'name': person['name'], 'info': {'blename': person['blename'], 'wifimac': person['wifimac'], 'timestamp': dtn}})
+                        self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn}})
 
 
 @log.catch

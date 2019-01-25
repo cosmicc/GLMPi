@@ -44,8 +44,8 @@ bluetooth_beacon = True
 # how long to scan for ble devices in range in seconds
 bluetooth_scantime = 15
 # Each person to determine presence [person, ble_device_name, wifi_mac]
-person_1 = ['Me', 'MyIPhone', 61:E1:88:14:17:30]
-person_2 = ['You', 'MyGPhone', 01:10:01:11:00:01]
+person_1 = Me, MyIPhone, 61:E1:88:14:17:30
+person_2 = You, MyGPhone, 01:10:01:11:00:01
 scandelay_away = .01
 scandelay_home = 60
 
