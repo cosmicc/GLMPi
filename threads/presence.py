@@ -163,14 +163,13 @@ def pres_thread():
                 looptime = loopdelay_away
             else:
                 looptime = loopdelay_home
-            log.warning(datetime.now().timestamp() - b.starttime)
             while datetime.now().timestamp() - b.starttime < looptime:
                 Presence.checkqueue()
                 sleep(1)
         except:
             log.exception(f'Exception in Presence Thread', exc_info=True)
             End('Exception in Presence Thread')
-        b.stop()
+        b.stop(debug=False)
     End('Presence thread loop ended prematurely')
 
 
