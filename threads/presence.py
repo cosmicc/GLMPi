@@ -54,7 +54,7 @@ class presenceListener():
         while config.has_option('presence', f'person_{k}'):
             self.peaople_count += 1
             person = config.getlist('presence', f'person_{k}')
-            self.people.update({'name': person[0], {'blename': person[1], 'wifimac': person[2], 'timestamp': 0}})
+            self.people.update({'name': person[0], 'imfo': {'blename': person[1], 'wifimac': person[2], 'timestamp': 0}})
             k += 1
         log.debug(f'Initializing bluetooth interface HCI0')
         subprocess.run(['/bin/hciconfig', 'hci0', 'up'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
@@ -73,7 +73,6 @@ class presenceListener():
                 self.away = True
             elif ststatus == 'awayoff':
                 self.away = False
-
 
     def btscan(self):
         @log.catch
@@ -99,7 +98,7 @@ class presenceListener():
                         if device_name == person['blename'] or device_appr == person['blename']:
                             log.info(f"""{person["name"]}'s Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB""")
                             dtn = datetime.now()
-                            self.people.update({'name': person['name'], {'blename': person['blename'], 'wifimac': person['wifimac'], 'timestamp': dtn})
+                            self.people.update({'name': person['name'], 'info': {'blename': person['blename'], 'wifimac': person['wifimac'], 'timestamp': dtn}})
                         if not discovery.is_master:
                             sendpresence(device=device_name, timestamp=dtn)
                 except:
@@ -113,17 +112,17 @@ class presenceListener():
             log.debug(f'Bluetooth device disconnected')
         else:
             bleconns = []
-            #a = codetime('connections')
+            # a = codetime('connections')
             for bledev in bledevs:
                 log.debug(f'found ble: {bledev.addr} {bledev.connectable}')
                 if bledev.connectable:
-                    #connect_ble_device(self, bledev)
-                    t = threading.Thread(target=connect_ble_device, args=(self,bledev,), daemon=True)
+                    # connect_ble_device(self, bledev)
+                    t = threading.Thread(target=connect_ble_device, args=(self, bledev, ), daemon=True)
                     bleconns.append(t)
                     t.start()
             for bleconthread in bleconns:
                 bleconthread.join()
-            #a.stop(debug=True)
+            # a.stop(debug=True)
             self.checkqueue()
 
     def arpscan(self):
@@ -133,12 +132,12 @@ class presenceListener():
         for each in output:
             line = (each.split('\t'))
             if len(line) > 2:
-                if line[1] in self.arpmacs:
-                    log.info(f'Device {line[1]} SEEN ON WIFI!')
-                    dtn = datetime.now()
-                    self.scanlist.update({'device': line[1], 'timestamp': dtn})
-                    if not discovery.is_master:
-                        sendpresence(device=line[1], timestamp=dtn)
+                for person in self.people:
+                    if line[1] == person['wifimac']:
+                        log.info(f"""{person["name"]}'s Device {person["wifimac"]} ON WIFI!""")
+                        dtn = datetime.now()
+                        self.people.update({'name': person['name'], 'info': {'blename': person['blename'], 'wifimac': person['wifimac'], 'timestamp': dtn}})
+
 
 @log.catch
 def sendpresence(device, timestamp):
@@ -161,6 +160,7 @@ def pres_thread():
     while True:
         b = codetime('total')
         try:
+            log.warning(Presence.people)
             if ismaster:
                 Presence.arpscan()
             Presence.btscan()
