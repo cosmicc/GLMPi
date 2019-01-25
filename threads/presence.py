@@ -5,6 +5,7 @@ from datetime import datetime
 from time import sleep
 
 import requests
+from socket import gethostname
 from ast import literal_eval
 from bluepy.btle import BTLEDisconnectError, DefaultDelegate, Peripheral, Scanner
 from loguru import logger as log
@@ -22,6 +23,7 @@ class ExtConfigParser(ConfigParser):
     def getlistint(self, section, option):
         return [int(x) for x in self.getlist(section, option)]
 
+host_name = gethostname()
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
@@ -57,7 +59,7 @@ class presenceListener():
             self.people_count += 1
             person = config.getlist('master_controller', f'presence_{k}')
             log.warning(f'adding person: {person[0]} {person}')
-            self.people.update({person[0]: {'blename': person[1], 'wifimac': person[2], 'timestamp': 0}})
+            self.people.update({person[0]: {'blename': person[1], 'wifimac': person[2], 'timestamp': 0, 'from': host_name}})
             k += 1
         log.debug(f'Initializing bluetooth interface HCI0')
         subprocess.run(['/bin/hciconfig', 'hci0', 'up'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
@@ -101,7 +103,7 @@ class presenceListener():
                         if device_name == info['blename'] or device_appr == info['blename']:
                             log.info(f"""{person}'s Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB""")
                             dtn = datetime.now().isoformat()
-                            self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn}})
+                            self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn, 'from': host_name}})
                             if not ismaster:
                                 sendpresence(person, info['blename'],  info['wifimac'], dtn)
                 except:
@@ -139,7 +141,7 @@ class presenceListener():
                     if line[1] == info['wifimac']:
                         log.info(f"""{person}'s Device {info["wifimac"]} ON WIFI!""")
                         dtn = datetime.now().isoformat()
-                        self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn}})
+                        self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn, 'from': host_name}})
                         if not ismaster:
                             sendpresence(person,  info['blename'], info['wifimac'], dtn)
 
@@ -147,7 +149,7 @@ class presenceListener():
 @log.catch
 def sendpresence(name, blename, wifimac, timestamp):
         if discovery.master is not None:
-            sreq = f'http://{discovery.master}:51500/masterapi/presence?name={name}&blename={blename}&wifimac={wifimac}&timestamp={timestamp}'
+            sreq = f'http://{discovery.master}:51500/masterapi/presence?name={name}&blename={blename}&wifimac={wifimac}&timestamp={timestamp}&from={host_name}'
             try:
                 r = requests.put(sreq)
             except:
