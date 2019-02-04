@@ -21,7 +21,6 @@ config = ConfigParser()
 config.read('/etc/glmpi.conf')
 loopdelay = float(config.get('led_strip', 'loopdelay'))
 
-
 def colorwheel(pos):
     if pos < 85:
         return Color(pos * 3, 255 - pos * 3, 0)

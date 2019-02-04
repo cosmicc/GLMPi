@@ -30,8 +30,7 @@ def secupdates():
 
 
 def setro(part):
-    cmd = f'mount {part} -o remount,ro'
-    child = subprocess.Popen([cmd], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
+    child = subprocess.Popen(['/bin/mount', part, '-o', 'remount,ro'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
     streamdata = child.communicate()[0]
     if child.returncode == 0:
         log.debug(f'filesystem {part} is now set to read-only')
@@ -40,8 +39,7 @@ def setro(part):
 
 
 def setrw(part):
-    cmd = f'mount {part} -o remount,rw'
-    child = subprocess.Popen([cmd], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
+    child = subprocess.Popen(['/bin/mount', part, '-o', 'remount,rw'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
     streamdata = child.communicate()[0]
     if child.returncode == 0:
         log.debug(f'filesystem {part} is now set to read/write')

@@ -28,6 +28,8 @@ cycledelay = 10
 # Each person to determine presence [person, ble_device_name, wifi_mac]
 presence_1 = Me, MyIPhone, 61:E1:88:14:17:30
 presence_2 = You, MyGPhone, 01:10:01:11:00:01
+# Seconds that pass before everyone is considered away
+presence_away_check = 300
 
 # loop delay for master controller thread
 loopdelay = 1
