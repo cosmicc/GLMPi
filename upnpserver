@@ -1,0 +1,78 @@
+#!/usr/local/bin/python3.7m
+
+import argparse
+import upnp
+import asyncio
+from configparser import ConfigParser
+from socket import gethostname
+import uuid
+from modules.extras import str2bool
+from loguru import logger as log
+
+host_name = gethostname()
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-c', '--console', action='store_true',
+                    help='supress logging output to console. default: error logging')
+parser.add_argument('-d', '--debug', action='store_true', help='extra verbose output (debug)')
+parser.add_argument('-i', '--info', action='store_true', help='verbose output (info)')
+args = parser.parse_args()
+
+if args.debug:
+    loglevel = "DEBUG"
+elif args.info:
+    loglevel = "INFO"
+else:
+    loglevel = "WARNING"
+
+if args.console:
+    log.configure(
+        handlers=[dict(sink=sys.stdout, level=loglevel, backtrace=True, format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'),
+                  dict(sink=logfile, level="ERROR", enqueue=True, serialize=False, rotation="1 MB", retention="30 days", compression="gz"),
+                  dict(sink=logjson, level="ERROR", enqueue=True, serialize=True, rotation="100 KB", retention="1 days")],
+        levels=[dict(name="STARTUP", no=38, icon="¤", color="<yellow>")], extra={"common_to_all": "default"}, activation=[("my_module.secret", False), ("another_library.module", True)])
+
+config = ConfigParser()
+config.read('/etc/glmpi.conf')
+
+if str2bool(config.get('master_controller', 'enabled')):
+    hname = f'{host_name} (Master)'
+else:
+    hname = host_name
+
+if config.has_option('general', 'upnp_uuid'):
+    uuid = config.get('general', 'upnp_uuid')
+    log.info(f'Existing uPnP UUID Found: {uuid}')
+else:
+    uuid = str(uuid.uuid4())
+    log.warning(f'uPnP UUID NOT Found. Generating one: {uuid}')
+    config.set('general', 'upnp_uuid', uuid)
+    with open('/etc/glmpi.conf', 'w') as config_file:
+        config.write(config_file)
+
+
+device = upnp.Device()
+device.deviceType = 'urn:schemas-upnp-org:device:SensorManagement:1'
+device.friendlyName = hname
+device.modelName = 'Galaxy Lighting Module'
+device.modelNumber = 1.0
+device.uuid = uuid
+device.upc = 12345
+device.manufacturer = 'Galaxy Home'
+device.presentationURL = f'https://{host_name}/api'
+device.manufacturerURL = 'https://github.com/cosmicc/GLMPi'
+
+service = upnp.Service()
+service.serviceType = 'sadmin-fr:service:dummy'
+service.serviceId = 'sadmin-fr:serviceId:1'
+
+device.addService(service)
+
+loop = asyncio.get_event_loop()
+server = upnp.Annoncer(device)
+server.initLoop()
+loop.run_forever()
+
+server.notify()
+server.foreaver()
+server.dispose()
