@@ -30,7 +30,7 @@ presence_1 = Me, MyIPhone, 61:E1:88:14:17:30
 presence_2 = You, MyGPhone, 01:10:01:11:00:01
 # Seconds that pass before everyone is considered away
 presence_away_check = 300
-
+mqtt_server = 192.168.1.100
 # loop delay for master controller thread
 loopdelay = 1
 

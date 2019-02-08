@@ -105,7 +105,7 @@ class presenceListener():
                             dtn = datetime.now().isoformat()
                             self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn, 'from': host_name}})
                             if not ismaster:
-                                sendpresence(person, info['blename'],  info['wifimac'], dtn)
+                                sendpresence(person, info['blename'], info['wifimac'], dtn)
                 except:
                     log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
             log.debug(f'Ending connect thread for BLE device: {dev.addr} {dev.rssi} dB')
@@ -143,38 +143,38 @@ class presenceListener():
                         dtn = datetime.now().isoformat()
                         self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn, 'from': host_name}})
                         if not ismaster:
-                            sendpresence(person,  info['blename'], info['wifimac'], dtn)
+                            sendpresence(person, info['blename'], info['wifimac'], dtn)
 
 
 @log.catch
 def sendpresence(name, blename, wifimac, timestamp):
-        if discovery.master is not None:
-            sreq = f'http://{discovery.master}:51500/masterapi/presence?name={name}&blename={blename}&wifimac={wifimac}&timestamp={timestamp}&from={host_name}'
-            try:
-                r = requests.put(sreq)
-            except:
-                log.warning(f'Master send connection failed to: {discovery.master} - {sreq}')
+    if discovery.master is not None:
+        sreq = f'http://{discovery.master}:51500/masterapi/presence?name={name}&blename={blename}&wifimac={wifimac}&timestamp={timestamp}&from={host_name}'
+        try:
+            r = requests.put(sreq)
+        except:
+            log.warning(f'Master send connection failed to: {discovery.master} - {sreq}')
+        else:
+            if r.status_code != 200:
+                log.warning(f'Master send error {r.status_code} to {discovery.master}: {sreq}')
             else:
-                if r.status_code != 200:
-                    log.warning(f'Master send error {r.status_code} to {discovery.master}: {sreq}')
-                else:
-                    log.debug(f'Master send successful to {discovery.master}: {sreq}')
+                log.debug(f'Master send successful to {discovery.master}: {sreq}')
 
 
 @log.catch
 def request_master_presence():
-        if discovery.master is not None:
-            sreq = f'http://{discovery.master}:51500/masterapi/presence'
-            try:
-                r = requests.get(sreq)
-            except:
-                log.warning(f'Master send connection failed to: {discovery.master} - {sreq}')
+    if discovery.master is not None:
+        sreq = f'http://{discovery.master}:51500/masterapi/presence'
+        try:
+            r = requests.get(sreq)
+        except:
+            log.warning(f'Master send connection failed to: {discovery.master} - {sreq}')
+        else:
+            if r.status_code != 200:
+                log.warning(f'Master send error {r.status_code} to {discovery.master}: {sreq}')
             else:
-                if r.status_code != 200:
-                    log.warning(f'Master send error {r.status_code} to {discovery.master}: {sreq}')
-                else:
-                    log.debug(f'Master send successful to {discovery.master}: {sreq}')
-                    return literal_eval(r.text)
+                log.debug(f'Master send successful to {discovery.master}: {sreq}')
+                return literal_eval(r.text)
 
 
 def pres_thread():
