@@ -1,13 +1,15 @@
 #!/usr/local/bin/python3.7m
 
 import argparse
-import upnp
 import asyncio
+import uuid
+import sys
 from configparser import ConfigParser
 from socket import gethostname
-import uuid
-from modules.extras import str2bool
+
+import upnp
 from loguru import logger as log
+from modules.extras import str2bool
 
 host_name = gethostname()
 
@@ -27,10 +29,7 @@ else:
 
 if args.console:
     log.configure(
-        handlers=[dict(sink=sys.stdout, level=loglevel, backtrace=True, format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'),
-                  dict(sink=logfile, level="ERROR", enqueue=True, serialize=False, rotation="1 MB", retention="30 days", compression="gz"),
-                  dict(sink=logjson, level="ERROR", enqueue=True, serialize=True, rotation="100 KB", retention="1 days")],
-        levels=[dict(name="STARTUP", no=38, icon="¤", color="<yellow>")], extra={"common_to_all": "default"}, activation=[("my_module.secret", False), ("another_library.module", True)])
+        handlers=[dict(sink=sys.stdout, level=loglevel, backtrace=True, format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>')])
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
@@ -41,12 +40,12 @@ else:
     hname = host_name
 
 if config.has_option('general', 'upnp_uuid'):
-    uuid = config.get('general', 'upnp_uuid')
-    log.info(f'Existing uPnP UUID Found: {uuid}')
+    cuuid = config.get('general', 'upnp_uuid')
+    log.info(f'Existing uPnP UUID Found: {cuuid}')
 else:
-    uuid = str(uuid.uuid4())
-    log.warning(f'uPnP UUID NOT Found. Generating one: {uuid}')
-    config.set('general', 'upnp_uuid', uuid)
+    cuuid = str(uuid.uuid4())
+    log.warning(f'uPnP UUID NOT Found. Generating one: {cuuid}')
+    config.set('general', 'upnp_uuid', cuuid)
     with open('/etc/glmpi.conf', 'w') as config_file:
         config.write(config_file)
 
@@ -56,8 +55,7 @@ device.deviceType = 'urn:schemas-upnp-org:device:SensorManagement:1'
 device.friendlyName = hname
 device.modelName = 'Galaxy Lighting Module'
 device.modelNumber = 1.0
-device.uuid = uuid
-device.upc = 12345
+device.uuid = cuuid
 device.manufacturer = 'Galaxy Home'
 device.presentationURL = f'https://{host_name}/api'
 device.manufacturerURL = 'https://github.com/cosmicc/GLMPi'
