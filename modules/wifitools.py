@@ -24,7 +24,9 @@ def isup_master(master):
 
 
 def isup_internet():
-    if host_port('1.1.1.1', 53) == True:
+    child = subprocess.Popen(['fping', '1.1.1.1', '-q', '-r', '2'], stdout=subprocess.PIPE)
+    streamer = child.communicate()  # do not remove, breaks returncode
+    if child.returncode == 0:
         return True
     else:
         return False

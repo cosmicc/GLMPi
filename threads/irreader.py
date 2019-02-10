@@ -4,6 +4,7 @@ from configparser import ConfigParser
 from loguru import logger as log
 from modules.extras import End
 from web.masterapi.views import sendrequest
+from threads.threadqueues import mqtt_queue
 
 config = ConfigParser()
 config.read('/etc/glmpi.conf')
@@ -40,15 +41,19 @@ def irreader_thread():
             if ircode == 'KEY_POWER':
                 log.info('POWER ON recieved from IR')
                 sendrequest('away', away='off')
+                mqtt_queue.put((1, ['smartthings/Away Mode/switch', 'off']))
             elif ircode == 'KEY_POWER2':
                 log.info('POWER OFF recieved from IR')
                 sendrequest('away', away='on')
+                mqtt_queue.put((1, ['smartthings/Away Mode/switch', 'on']))
             elif ircode == 'KEY_UP':
                 log.info('BRIGHT UP recieved from IR')
-
+                sendrequest('night', night='off')
+                mqtt_queue.put((1, ['smartthings/Night Mode/switch', 'off']))
             elif ircode == 'KEY_DOWN':
                 log.info('BRIGHT DOWN recieved from IR')
-
+                sendrequest('night', night='on')
+                mqtt_queue.put((1, ['smartthings/Night Mode/switch', 'on']))
             elif ircode == 'KEY_RED':
                 log.info('RED recieved from IR')
                 sendrequest('rgbcolor', red=255, green=0, blue=0)
@@ -66,13 +71,12 @@ def irreader_thread():
                 sendrequest('mode', mode=3)
             elif ircode == 'KEY_PROG2':
                 log.info('RAINBOW recieved from IR')
-                sendrequest('mode', mode=4)
+                sendrequest('mode', mode=3)
             elif ircode == 'KEY_PROG3':
                 log.info('PROG3 recieved from IR')
-
+                sendrequest('mode', mode=4)
             elif ircode == 'KEY_PROG4':
                 log.info('PROG4 recieved from IR')
-
             elif ircode == 'KEY_F1':
                 log.info('COLOR1 recieved from IR')
                 sendrequest('rgbcolor', red=255, green=127, blue=0)
