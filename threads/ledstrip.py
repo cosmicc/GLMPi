@@ -1,4 +1,5 @@
 import threading
+from ast import literal_eval
 from configparser import ConfigParser
 from datetime import datetime
 from pathlib import Path
@@ -9,7 +10,7 @@ from time import sleep
 
 import modules.rpiboard as rpi
 from loguru import logger as log
-from modules.extras import End, c2f, get_wifi_info, str2bool
+from modules.extras import End, c2f, get_wifi_info, str2bool, rescale
 from modules.timehelper import calcbright
 from rpi_ws281x import Adafruit_NeoPixel, Color
 from threads.netdiscover import discovery
@@ -61,6 +62,21 @@ def i2rgb(RGBint, string=True):
     else:
         return (red, green, blue)
 
+def parse_tuple(string):
+    try:
+        s = literal_eval(str(string))
+        if type(s) == tuple:
+            return s
+        return
+    except:
+        return
+
+def rgb_to_hex(rgb):
+    rgb = parse_tuple(rgb)
+    def clamp(x):
+        return max(0, min(x, 255))
+    hexcolor = "#{0:02x}{1:02x}{2:02x}".format(clamp(rgb[0]), clamp(rgb[1]), clamp(rgb[2]))
+    return hexcolor.upper()
 
 def hsv_to_rgb(h, s, v):
     h = h / 360.
@@ -129,7 +145,7 @@ class ledStrip():
         self.rainbowspeed = int(config.get('animations', 'rainbow_speed'))
         self.temp_units = config.get('general', 'temp_units')
         self.cyclehue = 0
-        self.tempurature = 0.0
+        self.temperature = 0.0
         self.humidity = 0.0
         self.nightlight_color = Color(int(config.get('nightlight', 'red')), int(config.get('nightlight', 'green')), int(config.get('nightlight', 'blue')))
         self.motion = False
@@ -146,7 +162,9 @@ class ledStrip():
             self.lastcolor = state_dict['lastcolor']
             self.pricolor = state_dict['pricolor']
             self.white = state_dict['white']
+            self.whitetemp = state_dict['whitetemp']
             self.brightness = state_dict['brightness']
+            self.autobright = state_dict['autobright']
             self.lastmotion = state_dict['lastmotion']
             log.debug(f'Savestate file found with data: {state_dict}')
             if self.away:
@@ -165,6 +183,8 @@ class ledStrip():
             self.pricolor = Color(0, 0, 0)
             self.white = Color(255, 255, 255)
             self.brightness = 255
+            self.autobright = 255
+            self.whitetemp = 5000
             self.lastmotion = datetime.now()
             log.debug('NO savestate file found, using defaults')
         strip = Adafruit_NeoPixel(self.ledcount, self.pin, self.frequency, self.dma, False, 255, self.channel)
@@ -189,7 +209,19 @@ class ledStrip():
             ttemp = c2f(rpi.cpu_temp())
         sused, stotal = rpi.get_swap()
         swap = f'{sused}M/{stotal}M'
-        return {'hostname': host_name, 'master': discovery.master, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'cputemp': ttemp, 'cyclehue': self.cyclehue, 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'tempurature': self.tempurature, 'humidity': self.humidity, 'motion': self.motion, 'lastmotion': self.lastmotion.strftime("%Y-%m-%d %H:%M:%S"), 'cpuspeed': rpi.get_cpuspeed(), 'cputhrottled': rpi.get_throttled(), 'swap': swap, 'uptime': rpi.system_uptime(), 'cpuload': rpi.get_load(), 'memory': rpi.get_freemem(), 'storage': rpi.get_diskspace(), 'wireless': get_wifi_info(), 'release': rpi.get_release(), 'system': rpi.rpi_info(), 'slaves': discovery.slaves}
+        return {'hostname': host_name, 'master': discovery.master, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'cputemp': ttemp, 'cyclehue': self.cyclehue, 'statefile': self.statefile, 'brightness': self.brightness, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'temperature': self.temperature, 'humidity': self.humidity, 'motion': self.motion, 'lastmotion': self.lastmotion.strftime("%Y-%m-%d %H:%M:%S"), 'cpuspeed': rpi.get_cpuspeed(), 'cputhrottled': rpi.get_throttled(), 'swap': swap, 'uptime': rpi.system_uptime(), 'cpuload': rpi.get_load(), 'memory': rpi.get_freemem(), 'storage': rpi.get_diskspace(), 'wireless': get_wifi_info(), 'release': rpi.get_release(), 'system': rpi.rpi_info(), 'slaves': discovery.slaves}
+
+    def pollinfo(self):
+        winfo = get_wifi_info()
+        if self.on:
+            enabled = 'on'
+        else:
+            enabled = 'off'
+        if self.motion:
+            inmotion = 'active'
+        else:
+            inmotion = 'inactive'
+        return {'enabled': enabled, 'temperature': self.temperature, 'humidity': self.humidity, 'uptime': rpi.system_uptime(), 'cpu_temp': c2f(rpi.cpu_temp()), 'lqi': winfo['quality'], 'rssi': winfo['signal'], 'brightness': rescale(self.brightness, 255, 100), 'autobrightness': rescale(self.autobright, 255, 100), 'mode': self.mode, 'away': self.away, 'color': rgb_to_hex(i2rgb(self.color)), 'colortemp': self.whitetemp, 'motion': inmotion}
 
     def transition(self, currentColor, targetColor, duration, fps):
         distance = colorDistance(currentColor, targetColor)
@@ -215,14 +247,52 @@ class ledStrip():
             self.strip.setPixelColor(led, ncolor)
         self.strip.show()
 
+
     def updatebrightness(self):
         newbright = calcbright()
-        if self.brightness != newbright and newbright != 0:
+        if self.autobright != newbright and newbright != 0:
             log.info(f'Auto-brightness level change from {self.brightness} to {newbright}')
+            oldbright = self.brightness
             self.brightness = newbright
-            if not self.night or not self.motion or not self.away or not self.on:
+            self.autobright = newbright
+            up = True
+            if oldbright > newbright:
+                up = False
+            if not self.night and not self.away and self.on:
+                while oldbright != newbright:
+                    if up:
+                        oldbright += 1
+                    else:
+                        oldbright -= 1
+                    self.strip.setBrightness(oldbright)
+                    self.strip.show()
+                    sleep(.01)
                 self.strip.setBrightness(self.brightness)
                 self.strip.show()
+
+
+    def setbrightness(self, nbright):
+        newbright = rescale(nbright, 100, 255)
+        if self.brightness != newbright and newbright != 0:
+            log.info(f'Brightness level change from {self.brightness} to {newbright}')
+            oldbright = self.brightness
+            self.brightness = newbright
+            up = True
+            if oldbright > newbright:
+                up = False
+            if not self.night and not self.away and self.on:
+                while oldbright != newbright:
+                    if up:
+                        oldbright += 1
+                    else:
+                        oldbright -= 1
+                    self.strip.setBrightness(oldbright)
+                    self.strip.show()
+                    sleep(.01)
+                self.strip.setBrightness(self.brightness)
+                self.strip.show()
+        restapi_queue.put(self.pollinfo())
+
 
     def startup(self):
         self.illuminated = True
@@ -254,7 +324,7 @@ class ledStrip():
             ledStrip.modeset(self, self.mode, savestate=False)
 
     def savestate(self):
-        statedata = {'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': self.color, 'lastcolor': self.lastcolor, 'pricolor': self.pricolor, 'white': self.white, 'brightness': self.brightness, 'lastmotion': self.lastmotion}
+        statedata = {'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': self.color, 'lastcolor': self.lastcolor, 'pricolor': self.pricolor, 'white': self.white, 'whitetemp': self.whitetemp, 'brightness': self.brightness, 'lastmotion': self.lastmotion, 'autobright': self.autobright}
         outfile = open(self.statefile, 'wb')
         pdump(statedata, outfile)
         outfile.close()
@@ -339,12 +409,14 @@ class ledStrip():
                 ledStrip.colorchange(self, Color(int(r), int(g), int(b)), sticky=False, blend=True, savestate=False)
 
     def whitetempchange(self, kelvin):
-        bluemin = 40
-        kelvinmin = 2000
+        bluemin = 0
+        kelvinmin = 2700
         kelvinmax = 6500
         newblue = (((kelvin - kelvinmin) * (255 - bluemin)) / (kelvinmax - kelvinmin)) + bluemin
         self.white = Color(255, 255, int(newblue))
+        self.whitetemp = kelvin
         ledStrip.modeset(self, 2)
+        restapi_queue.put(self.pollinfo())
 
     def preprocess(self, force=False):
         log.debug(f'Led strip pre process check running')
@@ -387,6 +459,7 @@ class ledStrip():
             log.exception(f'Critical Error in rainbow cycle Thread', exc_info=True)
 
     def processmotion(self, cmotion):
+        log.warning('Processing motion')
         self.lastmotion = datetime.now()
         if cmotion == 'on':
             self.motion = True
@@ -394,7 +467,7 @@ class ledStrip():
             self.motion = False
         else:
             log.error('Error in ledstrip processmotion')
-        if self.motion:
+        if self.motion and self.motionlight:
             if not self.away:
                 ledStrip.colorchange(self, self.white, sticky=False, blend=True, bright=255, savestate=False)
         else:
@@ -406,12 +479,16 @@ class ledStrip():
         self.pricolor = newcolor
         ledStrip.modeset(self, 1)
 
-    def hsvcolor(self, h, s, v):
-        r, g, b = hsv_to_rgb(float(h), float(s), float(v))
+    def hsvcolor(self, h, s):
+        h2 = 0 + (360 - 0) * ((h - 0) / (100 - 0))
+        #h2 = 0 + (100 - 0) * ((h - 0) / (360 - 0))
+        r, g, b = hsv_to_rgb(float(h2), float(s), 100)
         log.warning(f'r: {r} g: {g} b: {b}')
         newcolor = Color(int(r), int(g), int(b))
         self.pricolor = newcolor
         ledStrip.modeset(self, 1)
+        restapi_queue.put(self.pollinfo())
+
 
     def device_enable(self):
         if not self.on:
@@ -420,6 +497,8 @@ class ledStrip():
             if ledStrip.preprocess(self):
                 ledStrip.modeset(self, self.mode, savestate=False)
             ledStrip.savestate(self)
+            restapi_queue.put(self.pollinfo())
+
 
     def device_disable(self):
         if self.on:
@@ -427,6 +506,8 @@ class ledStrip():
             log.info('Device OFF')
             ledStrip.preprocess(self)
             ledStrip.savestate(self)
+            restapi_queue.put(self.pollinfo())
+
 
     def awayon(self):
         if not self.away:
@@ -459,7 +540,7 @@ class ledStrip():
             ledStrip.savestate(self)
 
     def tempupdate(self, temp, humidity):
-        self.tempurature = temp
+        self.temperature = temp
         self.humidity = humidity
 
 
@@ -478,11 +559,13 @@ def ledstrip_thread():
                 elif ststatus[1] == 'rgbcolor':
                     stripled.rgbcolor(ststatus[2], ststatus[3], ststatus[4])
                 elif ststatus[1] == 'hsvcolor':
-                    stripled.hsvcolor(ststatus[2], ststatus[3], ststatus[4])
+                    stripled.hsvcolor(ststatus[2], ststatus[3])
                 elif ststatus[1] == 'enable':
                     stripled.device_enable()
                 elif ststatus[1] == 'disable':
                     stripled.device_disable()
+                elif ststatus[1] == 'brightness':
+                    stripled.setbrightness(ststatus[2])
                 elif ststatus[1] == 'awayon':
                     stripled.awayon()
                 elif ststatus[1] == 'awayoff':
@@ -498,6 +581,8 @@ def ledstrip_thread():
                     stripled.modeset(int(ststatus[2]))
                 elif ststatus[1] == 'getinfo':
                     restapi_queue.put(stripled.info())
+                elif ststatus[1] == 'pollinfo':
+                    restapi_queue.put(stripled.pollinfo())
                 elif ststatus[1] == 'getnight':
                     restapi_queue.put(stripled.night)
                 elif ststatus[1] == 'getaway':

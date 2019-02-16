@@ -43,6 +43,7 @@ class DeviceReset(Resource):
             return 'Invalid Type', 400
 
 
+'''
 @log.catch()
 @api.route('/night')
 @api.doc(params={'night': 'on/off'})
@@ -60,8 +61,8 @@ class DeviceNight(Resource):
     def get(self):
         strip_queue.put((18, 'getnight'),)
         return restapi_queue.get()
-
-
+'''
+'''
 @log.catch()
 @api.route('/away')
 @api.doc(params={'away': 'on/off'})
@@ -82,7 +83,7 @@ class DeviceAway(Resource):
     def get(self):
         strip_queue.put((18, 'getaway'),)
         return restapi_queue.get()
-
+'''
 
 @log.catch()
 @api.route('/enable')
@@ -91,10 +92,10 @@ class DeviceEnable(Resource):
     def put(self):
         if request.args.get("enable") == 'on' or request.args.get("enable") == '1' or request.args.get("enable") == 'true':
             strip_queue.put((5, 'enable'),)
-            return 'Success', 200
+            return restapi_queue.get()
         elif request.args.get("enable") == 'off' or request.args.get("enable") == '0' or request.args.get("enable") == 'false':
             strip_queue.put((5, 'disable'),)
-            return 'Success', 200
+            return restapi_queue.get()
         else:
             return 'Error', 400
 
@@ -127,20 +128,21 @@ class RGBColor(Resource):
 
 @log.catch()
 @api.route('/hsvcolor')
-@api.doc(params={'hue': '359', 'saturation': '100', 'lightness': '100'})
+@api.doc(params={'hue': '100', 'saturation': '100'})
 class HSVColor(Resource):
     def put(self):
         try:
-            if int(request.args.get("hue")) < 0 or int(request.args.get("hue")) > 359:
+            hue = float(request.args.get("hue"))
+            saturation = float(request.args.get("saturation"))
+            if hue < 0 or hue >= 100:
                 return 'Invalid Hue Value', 400
-            if int(request.args.get("saturation")) < 0 or int(request.args.get("saturation")) > 100:
+            if saturation < 0 or saturation > 100:
                 return 'Invalid Saturation Value', 400
-            if int(request.args.get("lightness")) < 0 or int(request.args.get("lightness")) > 100:
-                return 'Invalid Lightness Value', 400
-            strip_queue.put((15, 'hsvcolor', request.args.get("hue"), request.args.get("saturation"), request.args.get("lightness")),)
+            strip_queue.put((15, 'hsvcolor', hue, saturation))
         except:
+            log.exception(f'Error in HSV color change {hue} - {saturation}')
             return 'Error', 400
-        return 'Success', 200
+        return restapi_queue.get()
 
     def get(self):
         strip_queue.put((18, 'gethsv'),)
@@ -153,10 +155,18 @@ class HSVColor(Resource):
 class Whitetemp(Resource):
     def put(self):
         strip_queue.put((15, 'whitetemp', request.args.get("kelvin")),)
-        return 'Success', 200
-
+        return restapi_queue.get()
     def get(self):
         strip_queue.put((18, 'getwhitetemp'),)
+        return restapi_queue.get()
+
+
+@log.catch()
+@api.route('/brightness')
+@api.doc(params={'brightness': '100'})
+class Brightness(Resource):
+    def put(self):
+        strip_queue.put((15, 'brightness', request.args.get("brightness")),)
         return restapi_queue.get()
 
 
@@ -199,6 +209,14 @@ class Cyclecolor(Resource):
 class Info(Resource):
     def get(self):
         strip_queue.put((18, 'getinfo'),)
+        return restapi_queue.get()
+
+
+@log.catch()
+@api.route('/poll')
+class Poll(Resource):
+    def get(self):
+        strip_queue.put((18, 'pollinfo'),)
         return restapi_queue.get()
 
 

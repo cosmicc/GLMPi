@@ -38,6 +38,16 @@ def setro(part):
         log.error(f'filesystem {part} failed to set to read-only')
 
 
+def rescale(value, oldmax=255, newmax=100, rounded=True):
+    if type(value) == str:
+        value = int(value)
+    result = newmax * (value / oldmax)
+    if rounded:
+        return int(result)
+    else:
+        return result
+
+
 def setrw(part):
     child = subprocess.Popen(['/bin/mount', part, '-o', 'remount,rw'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
     streamdata = child.communicate()[0]
