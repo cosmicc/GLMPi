@@ -23,19 +23,18 @@ def isup_master(master):
         return False
 
 
-def isup_internet():
-    child = subprocess.Popen(['fping', '1.1.1.1', '-q', '-r', '2'], stdout=subprocess.PIPE)
+def ping(host):
+    child = subprocess.Popen(['fping', host, '-q', '-r', '1'], stdout=subprocess.PIPE)
     streamer = child.communicate()  # do not remove, breaks returncode
     if child.returncode == 0:
         return True
     else:
         return False
+
+
+def isup_internet():
+    return ping('1.1.1.1')
 
 
 def isup_sthub(sthubip):
-    child = subprocess.Popen(['fping', sthubip, '-q', '-r', '1'], stdout=subprocess.PIPE)
-    streamer = child.communicate()  # do not remove, breaks returncode
-    if child.returncode == 0:
-        return True
-    else:
-        return False
+    return ping(sthubip)
