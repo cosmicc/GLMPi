@@ -51,14 +51,14 @@ def motionpir_thread():
                 # START MOTION ROUTINE
                 strip_queue.put((0, 'motion', 'on'))
                 #
-                log.debug('* Motion Detected *')
+                log.info('Motion has been Detected')
                 while motion_sensor.lastmotion_timestamp + mdelay > datetime.now().timestamp():
                     sleep(stoploopdelay)
                     motion_sensor.getmotion()
                 # STOP MOTION ROUTINE
                 strip_queue.put((0, 'motion', 'off'))
                 #
-                log.debug('* Motion Stopped *')
+                log.info('Motion detection has Ended')
             sleep(loopdelay)
         except:
             log.exception(f'Exception in Motion Detection Thread', exc_info=True)

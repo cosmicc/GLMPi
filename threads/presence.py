@@ -60,7 +60,7 @@ class presenceListener():
         while config.has_option('master_controller', f'presence_{k}'):
             self.people_count += 1
             person = config.getlist('master_controller', f'presence_{k}')
-            log.warning(f'adding person: {person[0]} {person}')
+            log.info(f'adding person: {person[0]} {person}')
             self.people.update({person[0]: {'blename': person[1], 'wifimac': person[2], 'timestamp': 0, 'from': host_name}})
             k += 1
         log.debug(f'Initializing bluetooth interface HCI0')
@@ -135,12 +135,15 @@ class presenceListener():
 
     def presencecheck(self):
         dtn = datetime.now()
-        allaway = 0
+        howmanyaway = 0
         for person, info in self.people.items():
             if info['timestamp'] != 0:
                 if dtn - datetime.strptime(info['timestamp'], "%Y-%m-%dT%H:%M:%S.%f") > timedelta(minutes=10):
-                   allaway += 1
-        if allaway == len(self.people) and self.presence:
+                   howmanyaway += 1
+            else:
+                howmanyaway += 1
+        log.warning(f'how many away: {howmanyaway} of {len(self.people)}')
+        if howmanyaway == len(self.people) and self.presence:
             self.presence = False
             strip_queue.put((3, 'presence', 'off'))
 
@@ -211,7 +214,7 @@ def pres_thread():
     while True:
         b = codetime('total')
         try:
-            log.warning(Presence.people)
+            #log.warning(Presence.people)
             if ismaster:
                 Presence.pingcheck()
             Presence.btscan()

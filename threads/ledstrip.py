@@ -231,7 +231,13 @@ class ledStrip():
             inmotion = 'active'
         else:
             inmotion = 'inactive'
-        return {'enabled': enabled, 'temperature': self.temperature, 'humidity': self.humidity, 'uptime': rpi.system_uptime(), 'cpu_temp': c2f(rpi.cpu_temp()), 'lqi': winfo['quality'], 'rssi': winfo['signal'], 'brightness': rescale(self.brightness, 255, 100), 'autobrightness': rescale(self.autobright, 255, 100), 'mode': self.mode, 'away': self.away, 'color': rgb_to_hex(i2rgb(self.color)), 'colortemp': self.whitetemp, 'motion': inmotion, 'hue': self.hue, 'saturation': self.saturation, 'presence': pres}
+        if self.mode == 1:
+            smode = 'color'
+        elif self.mode == 2:
+            smode = 'colorTemperature'
+        else:
+            smode = 'other'
+        return {'enabled': enabled, 'temperature': self.temperature, 'humidity': self.humidity, 'uptime': rpi.system_uptime(), 'cpu_temp': c2f(rpi.cpu_temp()), 'lqi': winfo['quality'], 'rssi': winfo['signal'], 'brightness': rescale(self.brightness, 255, 100), 'autobrightness': rescale(self.autobright, 255, 100), 'mode': self.mode, 'away': self.away, 'color': rgb_to_hex(i2rgb(self.color)), 'colortemp': self.whitetemp, 'motion': inmotion, 'hue': self.hue, 'saturation': self.saturation, 'presence': pres, 'colormode': smode}
 
     def transition(self, currentColor, targetColor, duration, fps):
         distance = colorDistance(currentColor, targetColor)
@@ -430,18 +436,18 @@ class ledStrip():
 
     def preprocess(self, force=False):
         log.debug(f'Led strip pre process check running')
-        if not self.on or self.away or (self.night and not self.nightlight):
-            if self.color != ledStrip.black or force:
-                log.info(f'Led Strip shutting OFF')
-                ledStrip.colorchange(self, ledStrip.black, sticky=False, savestate=False)
-                return False
-            return False
-        elif self.night and self.nightlight:
+        if not self.on and not self.away and (self.night and self.nightlight):
             if self.color != self.nightlight_color or force:
                 log.info(f'Led Strip turning on nightlight')
                 ledStrip.colorchange(self, self.nightlight_color, sticky=False, savestate=False)
                 self.strip.setBrightness(255)
                 self.strip.show()
+                return False
+            return False
+        elif not self.on:
+            if self.color != ledStrip.black or force:
+                log.info(f'Led Strip shutting OFF')
+                ledStrip.colorchange(self, ledStrip.black, sticky=False, savestate=False)
                 return False
             return False
         elif self.motion and self.motionlight:
@@ -503,7 +509,7 @@ class ledStrip():
         h2 = 0 + (360 - 0) * ((h - 0) / (100 - 0))
         #h2 = 0 + (100 - 0) * ((h - 0) / (360 - 0))
         r, g, b = hsv_to_rgb(float(h2), float(s), rescale(self.brightness, 255, 100))
-        log.warning(f'r: {r} g: {g} b: {b}')
+        #log.warning(f'r: {r} g: {g} b: {b}')
         newcolor = Color(int(r), int(g), int(b))
         self.pricolor = newcolor
         ledStrip.modeset(self, 1)
@@ -513,7 +519,7 @@ class ledStrip():
     def device_enable(self):
         if not self.on:
             self.on = True
-            log.info('Device ON')
+            log.info('Setting strip ON')
             if ledStrip.preprocess(self):
                 ledStrip.modeset(self, self.mode, savestate=False)
             ledStrip.savestate(self)
@@ -523,7 +529,7 @@ class ledStrip():
     def device_disable(self):
         if self.on:
             self.on = False
-            log.info('Device OFF')
+            log.info('Settings strip OFF')
             ledStrip.preprocess(self)
             ledStrip.savestate(self)
             restapi_queue.put(self.pollinfo())
@@ -540,21 +546,6 @@ class ledStrip():
         if self.away:
             self.away = False
             log.info('Device AWAY OFF')
-            if ledStrip.preprocess(self):
-                ledStrip.modeset(self, self.mode, savestate=False)
-            ledStrip.savestate(self)
-
-    def nighton(self):
-        if not self.night:
-            self.night = True
-            log.info('Device NIGHT ON')
-            ledStrip.preprocess(self)
-            ledStrip.savestate(self)
-
-    def nightoff(self):
-        if self.night:
-            self.night = False
-            log.info('Device NIGHT OFF')
             if ledStrip.preprocess(self):
                 ledStrip.modeset(self, self.mode, savestate=False)
             ledStrip.savestate(self)
@@ -592,10 +583,6 @@ def ledstrip_thread():
                     stripled.awayon()
                 elif ststatus[1] == 'awayoff':
                     stripled.awayoff()
-                elif ststatus[1] == 'nighton':
-                    stripled.nighton()
-                elif ststatus[1] == 'nightoff':
-                    stripled.nightoff()
                 elif ststatus[1] == 'stripoff':
                     stripled.on = False
                     stripled.colorchange(Color(0, 0, 0), sticky=False, blend=False, savestate=False)
