@@ -214,10 +214,15 @@ class ledStrip():
             ttemp = c2f(rpi.cpu_temp())
         sused, stotal = rpi.get_swap()
         swap = f'{sused}M/{stotal}M'
+        swap = f'{sused}M/{stotal}M'
         return {'hostname': host_name, 'master': discovery.master, 'nightlight': self.nightlight, 'ledcount': self.ledcount, 'cputemp': ttemp, 'cyclehue': self.cyclehue, 'statefile': self.statefile, 'brightness': self.brightness, 'autobright': self.autobright, 'mode': self.mode, 'lastmode': self.lastmode, 'away': self.away, 'on': self.on, 'night': self.night, 'color': i2rgb(self.color), 'lastcolor': i2rgb(self.lastcolor), 'pricolor': i2rgb(self.pricolor), 'white': i2rgb(self.white), 'illuminated': self.illuminated, 'temperature': self.temperature, 'humidity': self.humidity, 'motion': self.motion, 'lastmotion': self.lastmotion.strftime("%Y-%m-%d %H:%M:%S"), 'cpuspeed': rpi.get_cpuspeed(), 'cputhrottled': rpi.get_throttled(), 'swap': swap, 'uptime': rpi.system_uptime(), 'cpuload': rpi.get_load(), 'memory': rpi.get_freemem(), 'storage': rpi.get_diskspace(), 'wireless': get_wifi_info(), 'release': rpi.get_release(), 'system': rpi.rpi_info(), 'slaves': discovery.slaves}
 
     def pollinfo(self):
         winfo = get_wifi_info()
+        if self.presence:
+            pres = 'present'
+        else:
+            pres ='not present'
         if self.on:
             enabled = 'on'
         else:
@@ -226,7 +231,7 @@ class ledStrip():
             inmotion = 'active'
         else:
             inmotion = 'inactive'
-        return {'enabled': enabled, 'temperature': self.temperature, 'humidity': self.humidity, 'uptime': rpi.system_uptime(), 'cpu_temp': c2f(rpi.cpu_temp()), 'lqi': winfo['quality'], 'rssi': winfo['signal'], 'brightness': rescale(self.brightness, 255, 100), 'autobrightness': rescale(self.autobright, 255, 100), 'mode': self.mode, 'away': self.away, 'color': rgb_to_hex(i2rgb(self.color)), 'colortemp': self.whitetemp, 'motion': inmotion, 'hue': self.hue, 'saturation': self.saturation}
+        return {'enabled': enabled, 'temperature': self.temperature, 'humidity': self.humidity, 'uptime': rpi.system_uptime(), 'cpu_temp': c2f(rpi.cpu_temp()), 'lqi': winfo['quality'], 'rssi': winfo['signal'], 'brightness': rescale(self.brightness, 255, 100), 'autobrightness': rescale(self.autobright, 255, 100), 'mode': self.mode, 'away': self.away, 'color': rgb_to_hex(i2rgb(self.color)), 'colortemp': self.whitetemp, 'motion': inmotion, 'hue': self.hue, 'saturation': self.saturation, 'presence': pres}
 
     def transition(self, currentColor, targetColor, duration, fps):
         distance = colorDistance(currentColor, targetColor)
@@ -479,18 +484,12 @@ class ledStrip():
                 ledStrip.modeset(self, self.mode, savestate=False)
 
     def processpresence(self, cpres):
-        if cpres:
-            self.motion = True
-        elif cmotion == 'off':
-            self.motion = False
+        if cpres == 'on':
+            self.presence = True
+        elif cpres == 'off':
+            self.presence = False
         else:
-            log.error('Error in ledstrip processmotion')
-        if self.motion and self.motionlight:
-            if not self.away:
-                ledStrip.colorchange(self, self.white, sticky=False, blend=True, bright=255, savestate=False)
-        else:
-            if ledStrip.preprocess(self, force=False):
-                ledStrip.modeset(self, self.mode, savestate=False)
+            log.error('Error in ledstrip processpresence')
 
 
     def rgbcolor(self, r, g, b):
