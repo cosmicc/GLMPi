@@ -173,7 +173,6 @@ class presenceListener():
 
 @log.catch
 def sendpresence(name, blename, wifimac, timestamp):
-    self.presence = True
     strip_queue.put((3, 'presence', 'on'))
     '''
     if discovery.master is not None:
