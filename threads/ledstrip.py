@@ -75,7 +75,7 @@ def rgb_to_hex(rgb):
     rgb = parse_tuple(rgb)
     def clamp(x):
         return max(0, min(x, 255))
-    hexcolor = "{0:02x}{1:02x}{2:02x}".format(clamp(rgb[0]), clamp(rgb[1]), clamp(rgb[2]))
+    hexcolor = "#{0:02x}{1:02x}{2:02x}".format(clamp(rgb[0]), clamp(rgb[1]), clamp(rgb[2]))
     return hexcolor.upper()
 
 def hsv_to_rgb(h, s, v):
