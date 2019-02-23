@@ -51,7 +51,7 @@ else:
 
 
 device = upnp.Device()
-device.deviceType = 'urn:schemas-upnp-org:device:SensorManagement:1'
+device.deviceType = 'urn:schemas-upnp-org:device:ZonePlayer:1'
 device.friendlyName = hname
 device.modelName = 'Galaxy Lighting Module'
 device.modelNumber = 1.0

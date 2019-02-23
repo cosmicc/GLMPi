@@ -1,7 +1,7 @@
 import subprocess
 import threading
 from configparser import ConfigParser
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
 
 import requests
@@ -11,8 +11,9 @@ from bluepy.btle import BTLEDisconnectError, DefaultDelegate, Peripheral, Scanne
 from loguru import logger as log
 from modules.codetime import codetime
 from modules.extras import End, str2bool
+from modules.wifitools import ping
 from threads.netdiscover import discovery
-from threads.threadqueues import presence_queue
+from threads.threadqueues import presence_queue, strip_queue
 
 
 class ExtConfigParser(ConfigParser):
@@ -54,11 +55,12 @@ class presenceListener():
         self.scantime = int(config.get('presence', 'bluetooth_scantime'))
         self.people = {}
         self.people_count = 0
+        self.presence = 'off'
         k = 1
         while config.has_option('master_controller', f'presence_{k}'):
             self.people_count += 1
             person = config.getlist('master_controller', f'presence_{k}')
-            log.warning(f'adding person: {person[0]} {person}')
+            log.info(f'adding person: {person[0]} {person}')
             self.people.update({person[0]: {'blename': person[1], 'wifimac': person[2], 'timestamp': 0, 'from': host_name}})
             k += 1
         log.debug(f'Initializing bluetooth interface HCI0')
@@ -104,8 +106,8 @@ class presenceListener():
                             log.info(f"""{person}'s Device {device_name} IN BLUETOOTH RANGE! {dev.rssi} dB""")
                             dtn = datetime.now().isoformat()
                             self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn, 'from': host_name}})
-                            if not ismaster:
-                                sendpresence(person, info['blename'], info['wifimac'], dtn)
+                            self.presence = 'on'
+                            sendpresence(person, info['blename'], info['wifimac'], dtn)
                 except:
                     log.debug(f'Cannot get device name: {dev.addr} {dev.rssi} dB')
             log.debug(f'Ending connect thread for BLE device: {dev.addr} {dev.rssi} dB')
@@ -130,6 +132,32 @@ class presenceListener():
             # a.stop(debug=True)
             self.checkqueue()
 
+
+    def presencecheck(self):
+        dtn = datetime.now()
+        howmanyaway = 0
+        for person, info in self.people.items():
+            if info['timestamp'] != 0:
+                if dtn - datetime.strptime(info['timestamp'], "%Y-%m-%dT%H:%M:%S.%f") > timedelta(minutes=10):
+                   howmanyaway += 1
+            else:
+                howmanyaway += 1
+        log.warning(f'how many away: {howmanyaway} of {len(self.people)}')
+        if howmanyaway == len(self.people) and self.presence:
+            self.presence = False
+            strip_queue.put((3, 'presence', 'off'))
+
+
+    def pingcheck(self):
+        for person, info in self.people.items():
+            if ping(info['blename']):
+                log.info(f"""{person}'s Device {info["wifimac"]} ON WIFI!""")
+                dtn = datetime.now().isoformat()
+                self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn, 'from': host_name}})
+                dtn = datetime.now().isoformat()
+                self.presence = 'on'
+                sendpresence(person, info['blename'], info['wifimac'], dtn)
+
     def arpscan(self):
         p = subprocess.Popen("arp-scan -l", stdout=subprocess.PIPE, shell=True)
         (output, err) = p.communicate()
@@ -142,12 +170,14 @@ class presenceListener():
                         log.info(f"""{person}'s Device {info["wifimac"]} ON WIFI!""")
                         dtn = datetime.now().isoformat()
                         self.people.update({person: {'blename': info['blename'], 'wifimac': info['wifimac'], 'timestamp': dtn, 'from': host_name}})
-                        if not ismaster:
-                            sendpresence(person, info['blename'], info['wifimac'], dtn)
+                        self.presence = 'on'
+                        sendpresence(person, info['blename'], info['wifimac'], dtn)
 
 
 @log.catch
 def sendpresence(name, blename, wifimac, timestamp):
+    strip_queue.put((3, 'presence', 'on'))
+    '''
     if discovery.master is not None:
         sreq = f'http://{discovery.master}:51500/masterapi/presence?name={name}&blename={blename}&wifimac={wifimac}&timestamp={timestamp}&from={host_name}'
         try:
@@ -159,6 +189,7 @@ def sendpresence(name, blename, wifimac, timestamp):
                 log.warning(f'Master send error {r.status_code} to {discovery.master}: {sreq}')
             else:
                 log.debug(f'Master send successful to {discovery.master}: {sreq}')
+    '''
 
 
 @log.catch
@@ -183,9 +214,9 @@ def pres_thread():
     while True:
         b = codetime('total')
         try:
-            log.warning(Presence.people)
+            #log.warning(Presence.people)
             if ismaster:
-                Presence.arpscan()
+                Presence.pingcheck()
             Presence.btscan()
             Presence.checkqueue()
             if Presence.away:
@@ -197,6 +228,7 @@ def pres_thread():
                 sleep(1)
             if not Presence.people and not ismaster:
                 Presence.people = request_master_presence()
+            Presence.presencecheck()
         except:
             log.exception(f'Exception in Presence Thread', exc_info=True)
             End('Exception in Presence Thread')

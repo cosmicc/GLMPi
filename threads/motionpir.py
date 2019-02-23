@@ -14,7 +14,6 @@ mdelay = int(config.get('motion', 'stopdelay'))
 stoploopdelay = float(config.get('motion', 'stoploopdelay'))
 isenabled = str2bool(config.get('motion', 'enabled'))
 warmupdelay = int(config.get('motion', 'warmupdelay'))
-motionlight = str2bool(config.get('motion', 'light'))
 
 
 class motionPir():
@@ -50,18 +49,16 @@ def motionpir_thread():
         try:
             if motion_sensor.getmotion():
                 # START MOTION ROUTINE
-                if motionlight:
-                    strip_queue.put((0, 'motion', 'on'))
+                strip_queue.put((0, 'motion', 'on'))
                 #
-                log.debug('* Motion Detected *')
+                log.info('Motion has been Detected')
                 while motion_sensor.lastmotion_timestamp + mdelay > datetime.now().timestamp():
                     sleep(stoploopdelay)
                     motion_sensor.getmotion()
                 # STOP MOTION ROUTINE
-                if motionlight:
-                    strip_queue.put((0, 'motion', 'off'))
+                strip_queue.put((0, 'motion', 'off'))
                 #
-                log.debug('* Motion Stopped *')
+                log.info('Motion detection has Ended')
             sleep(loopdelay)
         except:
             log.exception(f'Exception in Motion Detection Thread', exc_info=True)

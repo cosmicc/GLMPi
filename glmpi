@@ -28,6 +28,7 @@ from threads.presence import pres_thread
 from threads.sensors import tempsensor_thread
 from threads.statusled import statusled_thread, stled
 from threads.threadqueues import alarm_queue, strip_queue
+from threads.mqttsender import mqtt_sender_thread
 from web import create_app
 
 __author__ = "Ian Perry"
@@ -316,6 +317,9 @@ def main():
     if presence_enabled:
         presence_thread = threading.Thread(name='presence_thread', target=pres_thread, daemon=True)
         presence_thread.start()
+
+    mqtt_thread = threading.Thread(name='mqtt_thread', target=mqtt_sender_thread, daemon=True)
+    mqtt_thread.start()
 
     if master_enabled:
         master_thread = threading.Thread(name='mastercontroller_thread', target=mastercontroller_thread, daemon=True)
