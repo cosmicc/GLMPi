@@ -1,6 +1,0 @@
-import serial
-
-while True:
-    serialport = serial.Serial("/dev/ttyAMA0", 9600, timeout=0.5)
-    command = serialport.read()
-    print str(command)
